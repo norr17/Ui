@@ -491,6 +491,7 @@ function Library:CreateWindow(config)
     })
     New("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
+        SortOrder = Enum.SortOrder.LayoutOrder,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         Padding = UDim.new(0, 0),
         Parent = TopTabsScroll,
@@ -500,7 +501,7 @@ function Library:CreateWindow(config)
     New("TextLabel", {
         AutomaticSize = Enum.AutomaticSize.XY,
         Text = ">",
-        TextSize = 14,
+        TextSize = 13,
         TextTransparency = 0.5,
         LayoutOrder = -2,
         Parent = TopTabsScroll,
@@ -508,7 +509,7 @@ function Library:CreateWindow(config)
     New("TextLabel", {
         AutomaticSize = Enum.AutomaticSize.XY,
         Text = "   " .. title .. "   /   ",
-        TextSize = 14,
+        TextSize = 13,
         TextTransparency = 0.5,
         LayoutOrder = -1,
         Parent = TopTabsScroll,
@@ -641,13 +642,14 @@ function Library:CreateWindow(config)
             Text = "",
             BackgroundTransparency = 1,
             AutoButtonColor = false,
+            LayoutOrder = #Library.Tabs + 1,
             Parent = TopTabsScroll,
         })
         
         local tabLabel = New("TextLabel", {
             AutomaticSize = Enum.AutomaticSize.XY,
             Text = tabName .. "   /   ",
-            TextSize = 14,
+            TextSize = 13,
             TextTransparency = 0.5,
             Parent = tabBtn,
         })
@@ -827,13 +829,13 @@ function Library:CreateWindow(config)
                 
                 local row = New("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 28),
+                    Size = UDim2.new(1, 0, 0, 24),
                     Visible = info.Visible ~= false,
                     Parent = elementList,
                 })
                 
                 local label = New("TextLabel", {
-                    Size = UDim2.new(1, -50, 1, 0),
+                    Size = UDim2.new(1, -34, 1, 0),
                     Text = text,
                     TextSize = 13,
                     TextTransparency = disabled and 0.5 or (risky and 0 or 0.3),
@@ -845,12 +847,12 @@ function Library:CreateWindow(config)
                 toggle.TextLabel = label
                 
                 -- Pill switch
-                local pillW, pillH = 36, 18
+                local pillW, pillH = 28, 14
                 local pillFrame = New("Frame", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, 0, 0.5, 0),
                     Size = UDim2.fromOffset(pillW, pillH),
-                    BackgroundColor3 = default and Library.Scheme.AccentColor or Color3.fromRGB(42, 42, 48),
+                    BackgroundColor3 = default and Library.Scheme.AccentColor or Color3.fromRGB(45, 45, 50),
                     Parent = row,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = pillFrame })
@@ -859,7 +861,7 @@ function Library:CreateWindow(config)
                     AnchorPoint = Vector2.new(0, 0.5),
                     Position = default and UDim2.new(1, -pillH + 2, 0.5, 0) or UDim2.fromOffset(2, pillH / 2),
                     Size = UDim2.fromOffset(pillH - 4, pillH - 4),
-                    BackgroundColor3 = Color3.new(1, 1, 1),
+                    BackgroundColor3 = default and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200),
                     Parent = pillFrame,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = ball })
@@ -873,8 +875,11 @@ function Library:CreateWindow(config)
                 })
                 
                 local function updateVisual(v)
-                    local color = v and Library.Scheme.AccentColor or Color3.fromRGB(42, 42, 48)
+                    local color = v and Library.Scheme.AccentColor or Color3.fromRGB(45, 45, 50)
+                    local ballColor = v and Color3.new(1, 1, 1) or Color3.fromRGB(200, 200, 200)
                     TweenService:Create(pillFrame, TweenInfo.new(0.2), { BackgroundColor3 = color }):Play()
+                    TweenService:Create(ball, TweenInfo.new(0.2), { BackgroundColor3 = ballColor }):Play()
+                    
                     local pos = v and UDim2.new(1, -pillH + 2, 0.5, 0) or UDim2.fromOffset(2, pillH / 2)
                     TweenService:Create(ball, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { Position = pos }):Play()
                 end
@@ -934,7 +939,7 @@ function Library:CreateWindow(config)
                 
                 local container = New("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, compact and 28 or 38),
+                    Size = UDim2.new(1, 0, 0, compact and 26 or 32),
                     Parent = elementList,
                 })
                 
@@ -954,17 +959,17 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(0.4, 0, 0, 16),
                     Text = tostring(default) .. suffix,
                     TextSize = 13,
-                    TextTransparency = 0.3,
+                    TextTransparency = 0.5,
                     TextXAlignment = Enum.TextXAlignment.Right,
                     Parent = container,
                 })
                 
                 -- Track
-                local trackY = compact and 16 or 22
+                local trackY = compact and 16 or 20
                 local track = New("Frame", {
-                    Position = UDim2.fromOffset(0, trackY),
-                    Size = UDim2.new(1, 0, 0, 4),
-                    BackgroundColor3 = Color3.fromRGB(42, 42, 48),
+                    Position = UDim2.fromOffset(0, trackY + 4),
+                    Size = UDim2.new(1, 0, 0, 3),
+                    BackgroundColor3 = Color3.fromRGB(45, 45, 50),
                     Parent = container,
                 })
                 New("UICorner", { CornerRadius = UDim.new(1, 0), Parent = track })
@@ -979,7 +984,7 @@ function Library:CreateWindow(config)
                 local thumb = New("Frame", {
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     Position = UDim2.new((default - min) / (max - min), 0, 0.5, 0),
-                    Size = UDim2.fromOffset(14, 14),
+                    Size = UDim2.fromOffset(10, 10),
                     BackgroundColor3 = Color3.new(1, 1, 1),
                     Parent = track,
                 })
@@ -1517,8 +1522,7 @@ function Library:CreateWindow(config)
                 return buttonObj
             end
             
-            -- CHECKBOX (same as Toggle but with square visual)
-            function Groupbox:AddCheckbox(idx, info)
+            -- CHECKBOX (same as Toggle but with square vi            function Groupbox:AddCheckbox(idx, info)
                 info = info or {}
                 local text = info.Text or "Checkbox"
                 local default = info.Default or false
@@ -1530,13 +1534,13 @@ function Library:CreateWindow(config)
                 
                 local row = New("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 28),
+                    Size = UDim2.new(1, 0, 0, 24),
                     Visible = info.Visible ~= false,
                     Parent = elementList,
                 })
                 
                 local label = New("TextLabel", {
-                    Size = UDim2.new(1, -30, 1, 0),
+                    Size = UDim2.new(1, -26, 1, 0),
                     Text = text,
                     TextSize = 13,
                     TextTransparency = disabled and 0.5 or (risky and 0 or 0.3),
@@ -1548,21 +1552,28 @@ function Library:CreateWindow(config)
                 toggle.TextLabel = label
                 
                 -- Square checkbox
-                local boxSize = 18
+                local boxSize = 16
                 local boxFrame = New("Frame", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     Position = UDim2.new(1, 0, 0.5, 0),
                     Size = UDim2.fromOffset(boxSize, boxSize),
-                    BackgroundColor3 = default and Library.Scheme.AccentColor or Color3.fromRGB(42, 42, 48),
+                    BackgroundColor3 = default and Library.Scheme.AccentColor or Color3.fromRGB(45, 45, 50),
                     Parent = row,
                 })
                 New("UICorner", { CornerRadius = UDim.new(0, 4), Parent = boxFrame })
+                
+                -- UIStroke to make it clean
+                local stroke = New("UIStroke", {
+                    Color = default and Library.Scheme.AccentColor or Color3.fromRGB(55, 55, 60),
+                    Thickness = 1,
+                    Parent = boxFrame,
+                })
                 
                 -- Checkmark
                 local checkmark = New("TextLabel", {
                     Size = UDim2.fromScale(1, 1),
                     Text = "✓",
-                    TextSize = 14,
+                    TextSize = 12,
                     TextTransparency = default and 0 or 1,
                     TextColor3 = Color3.new(1, 1, 1),
                     Parent = boxFrame,
@@ -1577,10 +1588,12 @@ function Library:CreateWindow(config)
                 })
                 
                 local function updateVisual(v)
-                    local color = v and Library.Scheme.AccentColor or Color3.fromRGB(42, 42, 48)
+                    local color = v and Library.Scheme.AccentColor or Color3.fromRGB(45, 45, 50)
+                    local outline = v and Library.Scheme.AccentColor or Color3.fromRGB(55, 55, 60)
                     TweenService:Create(boxFrame, TweenInfo.new(0.2), { BackgroundColor3 = color }):Play()
-                    TweenService:Create(checkmark, TweenInfo.new(0.15), { TextTransparency = v and 0 or 1 }):Play()
-                end
+                    TweenService:Create(stroke, TweenInfo.new(0.2), { Color = outline }):Play()
+                    TweenService:Create(checkmark, TweenInfo.new(0.2), { TextTransparency = v and 0 or 1 }):Play()
+                end     end
                 
                 function toggle:SetValue(v)
                     toggle.Value = v
