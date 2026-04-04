@@ -952,7 +952,16 @@ function Window:Build()
         BackgroundColor3 = library.Theme.Sidebar,
         BorderSizePixel = 0,
     })
+    self.SidebarCorner = makeCorner(self.Sidebar, self.CornerRadius)
     bindTheme(library, self.Sidebar, "BackgroundColor3", "Sidebar")
+    local sidebarFill = create("Frame", {
+        Parent = self.Sidebar,
+        Position = UDim2.new(0.5, 0, 0, 0),
+        Size = UDim2.new(0.5, 0, 1, 0),
+        BackgroundColor3 = library.Theme.Sidebar,
+        BorderSizePixel = 0,
+    })
+    bindTheme(library, sidebarFill, "BackgroundColor3", "Sidebar")
 
     self.SidebarDivider = create("Frame", {
         Parent = self.Root,
@@ -1016,7 +1025,7 @@ function Window:Build()
     self.Header = create("Frame", {
         Parent = self.Content,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 56),
+        Size = UDim2.new(1, 0, 0, 60),
     })
 
     local headerLine = create("Frame", {
@@ -1032,49 +1041,27 @@ function Window:Build()
     self.Trail = create("Frame", {
         Parent = self.Header,
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(18, 14),
-        Size = UDim2.new(1, -36, 0, 28),
+        Position = UDim2.fromOffset(20, 14),
+        Size = UDim2.new(1, -40, 0, 30),
     })
-    create("UIListLayout", {
+    self.TrailLayout = create("UIListLayout", {
         Parent = self.Trail,
         FillDirection = Enum.FillDirection.Horizontal,
         VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 10),
+        Padding = UDim.new(0, 12),
     })
-
-    self.TrailChevron = create("TextLabel", {
-        Parent = self.Trail,
-        BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(12, 22),
-        Text = ">",
-        TextColor3 = library.Theme.Accent,
-    })
-    applyTextStyle(self.TrailChevron, 16, "bold")
-    bindTheme(library, self.TrailChevron, "TextColor3", "Accent")
-
-    self.TitleLabel = create("TextLabel", {
-        Parent = self.Trail,
-        BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.X,
-        Size = UDim2.fromOffset(0, 22),
-        Text = self.Title,
-        TextColor3 = library.Theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    applyTextStyle(self.TitleLabel, 14, "medium")
-    bindTheme(library, self.TitleLabel, "TextColor3", "Text")
 
     self.Body = create("Frame", {
         Parent = self.Content,
-        Position = UDim2.fromOffset(0, 56),
-        Size = UDim2.new(1, 0, 1, -56),
+        Position = UDim2.fromOffset(0, 60),
+        Size = UDim2.new(1, 0, 1, -60),
         BackgroundTransparency = 1,
     })
 
     self.Inset = create("Frame", {
         Parent = self.Body,
-        Position = UDim2.fromOffset(12, 10),
-        Size = UDim2.new(1, -24, 1, -22),
+        Position = UDim2.fromOffset(10, 8),
+        Size = UDim2.new(1, -20, 1, -18),
         BackgroundColor3 = library.Theme.Inset,
         BorderSizePixel = 0,
         ClipsDescendants = true,
@@ -1153,6 +1140,8 @@ function Window:Build()
             self:SetVisible(not self.Visible)
         end
     end))
+
+    self:_rebuildTrail()
 end
 
 function Window:SetVisible(state)
@@ -1165,6 +1154,9 @@ function Window:SetCornerRadius(radius)
     if self.RootCorner then
         self.RootCorner.CornerRadius = UDim.new(0, self.CornerRadius)
     end
+    if self.SidebarCorner then
+        self.SidebarCorner.CornerRadius = UDim.new(0, self.CornerRadius)
+    end
     if self.InsetCorner then
         self.InsetCorner.CornerRadius = UDim.new(0, math.max(12, self.CornerRadius))
     end
@@ -1172,9 +1164,7 @@ end
 
 function Window:ChangeTitle(title)
     self.Title = tostring(title or self.Title)
-    if self.TitleLabel then
-        self.TitleLabel.Text = self.Title
-    end
+    self:_rebuildTrail()
 end
 
 function Window:ChangeFooter(footer)
@@ -1196,14 +1186,14 @@ function Window:_buildSidebarButton(tab)
         Parent = self.SidebarButtons,
         AutoButtonColor = false,
         BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(44, 44),
+        Size = UDim2.fromOffset(46, 46),
         Text = "",
     })
     local iconHolder = create("Frame", {
         Parent = button,
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.fromScale(0.5, 0.5),
-        Size = UDim2.fromOffset(22, 22),
+        Size = UDim2.fromOffset(24, 24),
         BackgroundTransparency = 1,
     })
     tab.SidebarIcon = createIconVisual(iconHolder, tab.Icon, buildHumanoidIcon, self.Library.Theme.MutedText)
@@ -1215,36 +1205,76 @@ end
 
 function Window:_rebuildTrail()
     for _, child in ipairs(self.Trail:GetChildren()) do
-        if child:IsA("GuiObject") and child ~= self.TrailChevron and child ~= self.TitleLabel and not child:IsA("UIListLayout") then
+        if child:IsA("GuiObject") and child ~= self.TrailLayout then
             child:Destroy()
         end
     end
+
+    local order = 1
+    local chevron = create("TextLabel", {
+        Parent = self.Trail,
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.X,
+        Size = UDim2.fromOffset(0, 24),
+        LayoutOrder = order,
+        Text = ">",
+        TextColor3 = self.Library.Theme.Accent,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    })
+    applyTextStyle(chevron, 17, "bold")
+    bindTheme(self.Library, chevron, "TextColor3", "Accent")
+    order = order + 1
+
+    local titleLabel = create("TextLabel", {
+        Parent = self.Trail,
+        BackgroundTransparency = 1,
+        AutomaticSize = Enum.AutomaticSize.X,
+        Size = UDim2.fromOffset(0, 24),
+        LayoutOrder = order,
+        Text = self.Title,
+        TextColor3 = self.Library.Theme.Text,
+        TextXAlignment = Enum.TextXAlignment.Left,
+    })
+    applyTextStyle(titleLabel, 15, "medium")
+    bindTheme(self.Library, titleLabel, "TextColor3", "Text")
+    self.TitleLabel = titleLabel
+    order = order + 1
 
     for index, tab in ipairs(self.Tabs) do
         local slash = create("TextLabel", {
             Parent = self.Trail,
             BackgroundTransparency = 1,
             AutomaticSize = Enum.AutomaticSize.X,
-            Size = UDim2.fromOffset(0, 22),
+            Size = UDim2.fromOffset(0, 24),
+            LayoutOrder = order,
             Text = "/",
             TextColor3 = self.Library.Theme.AccentStrong,
         })
-        applyTextStyle(slash, 14, "medium")
+        applyTextStyle(slash, 15, "medium")
         bindTheme(self.Library, slash, "TextColor3", "AccentStrong")
+        order = order + 1
 
         tab.TrailButton = create("TextButton", {
             Parent = self.Trail,
             BackgroundTransparency = 1,
             AutoButtonColor = false,
             AutomaticSize = Enum.AutomaticSize.X,
-            Size = UDim2.fromOffset(0, 22),
+            Size = UDim2.fromOffset(0, 24),
+            LayoutOrder = order,
             Text = tab.Title,
             TextColor3 = self.Library.Theme.SubText,
         })
-        applyTextStyle(tab.TrailButton, 14, "medium")
+        applyTextStyle(tab.TrailButton, 15, "medium")
         tab.TrailButton.MouseButton1Click:Connect(function()
             self:SetTab(tab)
         end)
+        order = order + 1
+    end
+
+    if self.ActiveTab then
+        for _, tab in ipairs(self.Tabs) do
+            tab:UpdateVisual(tab == self.ActiveTab)
+        end
     end
 end
 
@@ -1266,9 +1296,7 @@ function Window:AddTab(title, options)
     self.Tabs[#self.Tabs + 1] = tab
     self:_buildSidebarButton(tab)
     self:_rebuildTrail()
-    if not self.ActiveTab then
-        self:SetTab(tab)
-    end
+    self:SetTab(self.ActiveTab or tab)
     return tab
 end
 
@@ -1290,9 +1318,7 @@ function Window:AddKeyTab(title, options)
     self.Tabs[#self.Tabs + 1] = tab
     self:_buildSidebarButton(tab)
     self:_rebuildTrail()
-    if not self.ActiveTab then
-        self:SetTab(tab)
-    end
+    self:SetTab(self.ActiveTab or tab)
     return tab
 end
 
@@ -1334,8 +1360,8 @@ function Tab:Build()
     self.Canvas = create("Frame", {
         Parent = self.Page,
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(14, 14),
-        Size = UDim2.new(1, -28, 0, 0),
+        Position = UDim2.fromOffset(12, 12),
+        Size = UDim2.new(1, -24, 0, 0),
     })
 
     self.LeftColumn = create("Frame", {
@@ -1344,20 +1370,20 @@ function Tab:Build()
         Size = UDim2.new(0.5, -6, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
     })
-    self.LeftLayout = create("UIListLayout", { Parent = self.LeftColumn, Padding = UDim.new(0, 12) })
+    self.LeftLayout = create("UIListLayout", { Parent = self.LeftColumn, Padding = UDim.new(0, 14) })
 
     self.RightColumn = create("Frame", {
         Parent = self.Canvas,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 6, 0, 0),
+        Position = UDim2.new(0.5, 7, 0, 0),
         Size = UDim2.new(0.5, -6, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
     })
-    self.RightLayout = create("UIListLayout", { Parent = self.RightColumn, Padding = UDim.new(0, 12) })
+    self.RightLayout = create("UIListLayout", { Parent = self.RightColumn, Padding = UDim.new(0, 14) })
 
     local function sync()
         local width = self.Canvas.AbsoluteSize.X
-        local half = math.floor((width - 12) / 2)
+        local half = math.floor((width - 14) / 2)
 
         for _, item in ipairs(self.LeftItems) do
             if item.FlexSpacer then
@@ -1372,7 +1398,7 @@ function Tab:Build()
         end
 
         self.LeftColumn.Size = UDim2.fromOffset(half, self.LeftLayout.AbsoluteContentSize.Y)
-        self.RightColumn.Position = UDim2.fromOffset(half + 12, 0)
+        self.RightColumn.Position = UDim2.fromOffset(half + 14, 0)
         self.RightColumn.Size = UDim2.fromOffset(half, self.RightLayout.AbsoluteContentSize.Y)
 
         local pairCount = math.max(#self.LeftItems, #self.RightItems)
@@ -1426,17 +1452,18 @@ local function makeContainerFrame(library, parent, title)
     stroke.Color = library.Theme.Border
     bindTheme(library, frame, "BackgroundColor3", "Surface")
     bindTheme(library, stroke, "Color", "Border")
-    makePadding(frame, 14, 14, 14, 14)
+    makePadding(frame, 16, 16, 16, 16)
 
     local header = create("Frame", {
         Parent = frame,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 18),
+        Size = UDim2.new(1, 0, 0, 20),
     })
     local iconHolder = create("Frame", {
         Parent = header,
         BackgroundTransparency = 1,
-        Size = UDim2.fromOffset(16, 16),
+        Position = UDim2.fromOffset(0, 1),
+        Size = UDim2.fromOffset(18, 18),
     })
     local headerIcon = buildHumanoidIcon(iconHolder, library.Theme.SubText)
     setIconColor(headerIcon, library.Theme.SubText)
@@ -1447,24 +1474,24 @@ local function makeContainerFrame(library, parent, title)
     local label = create("TextLabel", {
         Parent = header,
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(22, -1),
-        Size = UDim2.new(1, -22, 1, 0),
+        Position = UDim2.fromOffset(26, -1),
+        Size = UDim2.new(1, -26, 1, 0),
         Text = title,
         TextColor3 = library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 15, "medium")
+    applyTextStyle(label, 16, "medium")
     bindTheme(library, label, "TextColor3", "Text")
 
     local content = create("Frame", {
         Parent = frame,
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(0, 26),
+        Position = UDim2.fromOffset(0, 30),
         AutomaticSize = Enum.AutomaticSize.Y,
         Size = UDim2.new(1, 0, 0, 0),
     })
-    local layout = create("UIListLayout", { Parent = content, Padding = UDim.new(0, 8) })
+    local layout = create("UIListLayout", { Parent = content, Padding = UDim.new(0, 10) })
     local spacer = create("Frame", {
         Parent = content,
         BackgroundTransparency = 1,
@@ -1689,7 +1716,7 @@ local function addSimpleLabel(container, textOrConfig, doesWrap, idx)
         TextYAlignment = Enum.TextYAlignment.Top,
         TextTruncate = config.DoesWrap and Enum.TextTruncate.None or Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(label, config.Size or 13, config.Weight or "regular")
+    applyTextStyle(label, config.Size or 15, config.Weight or "regular")
     bindTheme(container.Library, label, "TextColor3", config.ColorToken or "SubText")
     local wrapper = {
         Library = container.Library,
@@ -1791,12 +1818,12 @@ local function addButton(container, textOrConfig, maybeConfig)
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
-        Size = UDim2.new(1, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 34),
         Text = config.Text or "Button",
         TextColor3 = config.Risky and Color3.fromRGB(255, 155, 155) or container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(button, 13, "medium")
+    applyTextStyle(button, 15, "medium")
     makeCorner(button, 8)
     local stroke = makeStroke(button, 1)
     stroke.Color = container.Library.Theme.Border
@@ -1897,32 +1924,32 @@ local function addToggle(container, flagOrConfig, maybeConfig)
     end
     local config = parseFlagConfig(flagOrConfig, maybeConfig)
     local text = config.Text or config.Flag or "Toggle"
-    local row = createRow(container, 26)
+    local row = createRow(container, 32)
     local label = create("TextLabel", {
         Parent = row,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -52, 1, 0),
+        Size = UDim2.new(1, -58, 1, 0),
         Text = text,
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "regular")
+    applyTextStyle(label, 15, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(40, 20),
+        Size = UDim2.fromOffset(42, 22),
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
         Text = "",
     })
-    makeCorner(button, 10)
+    makeCorner(button, 11)
     local knob = create("Frame", {
         Parent = button,
         AnchorPoint = Vector2.new(0, 0.5),
-        Position = UDim2.new(0, 3, 0.5, 0),
+        Position = UDim2.new(0, 4, 0.5, 0),
         Size = UDim2.fromOffset(14, 14),
         BackgroundColor3 = container.Library.Theme.AccentMuted,
         BorderSizePixel = 0,
@@ -1965,7 +1992,7 @@ local function addToggle(container, flagOrConfig, maybeConfig)
     end
     function option:SetValue(value, silent)
         self.Value = value and true or false
-        tween(self.Knob, { Position = self.Value and UDim2.new(0, 23, 0.5, 0) or UDim2.new(0, 3, 0.5, 0) })
+        tween(self.Knob, { Position = self.Value and UDim2.new(0, 24, 0.5, 0) or UDim2.new(0, 4, 0.5, 0) })
         self:UpdateTheme()
         if not silent then
             self:TriggerChanged()
@@ -1989,7 +2016,7 @@ TabboxPage.AddToggle = addToggle
 addCheckbox = function(container, flagOrConfig, maybeConfig)
     local config = parseFlagConfig(flagOrConfig, maybeConfig)
     local text = config.Text or config.Flag or "Checkbox"
-    local row = createRow(container, 24)
+    local row = createRow(container, 30)
     local label = create("TextLabel", {
         Parent = row,
         BackgroundTransparency = 1,
@@ -1999,7 +2026,7 @@ addCheckbox = function(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "regular")
+    applyTextStyle(label, 15, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2082,7 +2109,7 @@ local function addInput(container, flagOrConfig, maybeConfig)
     local frame = create("Frame", {
         Parent = container.ContentFrame,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 54),
+        Size = UDim2.new(1, 0, 0, 60),
     })
     local label = create("TextLabel", {
         Parent = frame,
@@ -2093,13 +2120,13 @@ local function addInput(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "regular")
+    applyTextStyle(label, 15, "regular")
     local box = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
-        Position = UDim2.fromOffset(0, 22),
-        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.fromOffset(0, 26),
+        Size = UDim2.new(1, 0, 0, 32),
         PlaceholderText = config.Placeholder or "",
         Text = tostring(config.Default or ""),
         TextColor3 = container.Library.Theme.Text,
@@ -2107,7 +2134,7 @@ local function addInput(container, flagOrConfig, maybeConfig)
         ClearTextOnFocus = config.ClearTextOnFocus == true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(box, 13, "medium")
+    applyTextStyle(box, 14, "medium")
     makeCorner(box, 8)
     makePadding(box, 10, 10, 0, 0)
 
@@ -2201,39 +2228,39 @@ local function addSlider(container, flagOrConfig, maybeConfig)
     local frame = create("Frame", {
         Parent = container.ContentFrame,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, compact and 26 or 54),
+        Size = UDim2.new(1, 0, 0, compact and 30 or 62),
     })
     local label = create("TextLabel", {
         Parent = frame,
         BackgroundTransparency = 1,
         Visible = not compact,
-        Size = UDim2.new(1, -72, 0, 18),
+        Size = UDim2.new(1, -74, 0, 20),
         Text = text,
         TextColor3 = container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "medium")
+    applyTextStyle(label, 15, "medium")
     local valueBox = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
         AnchorPoint = Vector2.new(1, 0),
-        Position = UDim2.new(1, 0, 0, compact and -2 or 0),
-        Size = UDim2.fromOffset(48, 22),
+        Position = UDim2.new(1, 0, 0, compact and -1 or 0),
+        Size = UDim2.fromOffset(58, 24),
         Text = "",
         TextColor3 = container.Library.Theme.SubText,
         PlaceholderText = "",
         ClearTextOnFocus = false,
         TextXAlignment = Enum.TextXAlignment.Center,
     })
-    applyTextStyle(valueBox, 12, "regular")
+    applyTextStyle(valueBox, 14, "regular")
     makeCorner(valueBox, 6)
     local bar = create("TextButton", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
-        Position = UDim2.fromOffset(0, compact and 16 or 34),
+        Position = UDim2.fromOffset(0, compact and 20 or 40),
         Size = UDim2.new(1, 0, 0, 6),
         AutoButtonColor = false,
         Text = "",
@@ -2250,11 +2277,11 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         Parent = bar,
         AnchorPoint = Vector2.new(0.5, 0.5),
         Position = UDim2.new(0, 0, 0.5, 0),
-        Size = UDim2.fromOffset(20, 12),
+        Size = UDim2.fromOffset(22, 14),
         BackgroundColor3 = container.Library.Theme.AccentStrong,
         BorderSizePixel = 0,
     })
-    makeCorner(thumb, 6)
+    makeCorner(thumb, 7)
 
     local option = attachElementCommon(setmetatable({
         Library = container.Library,
@@ -2400,23 +2427,23 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
     local row = create("Frame", {
         Parent = frame,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 24),
+        Size = UDim2.new(1, 0, 0, 30),
     })
     local label = create("TextLabel", {
         Parent = row,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -132, 1, 0),
+        Size = UDim2.new(1, -146, 1, 0),
         Text = text,
         TextColor3 = container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "medium")
+    applyTextStyle(label, 15, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(120, 22),
+        Size = UDim2.fromOffset(126, 26),
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
@@ -2431,7 +2458,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(selected, 13, "regular")
+    applyTextStyle(selected, 14, "regular")
     local listHolder = create("Frame", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Surface,
@@ -2442,7 +2469,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         ClipsDescendants = true,
     })
     makeCorner(listHolder, 8)
-    local listPadding = makePadding(listHolder, 4, 4, 4, 4)
+    local listPadding = makePadding(listHolder, 5, 5, 5, 5)
     local searchBox = create("TextBox", {
         Parent = listHolder,
         Visible = config.Searchable == true,
@@ -2456,7 +2483,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         ClearTextOnFocus = false,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(searchBox, 12, "regular")
+    applyTextStyle(searchBox, 13, "regular")
     makeCorner(searchBox, 6)
     makePadding(searchBox, 8, 8, 0, 0)
     local list = create("ScrollingFrame", {
@@ -2565,11 +2592,11 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
     function option:RecalculateListSize(count)
         local visibleCount = count or #getFilteredValues()
         local rowCount = math.min(visibleCount, self.MaxVisibleDropdownItems)
-        local searchHeight = self.Searchable and 28 or 0
-        local paddingHeight = 8
-        self.List.Size = UDim2.new(1, 0, 0, rowCount * 26)
-        self.List.CanvasSize = UDim2.new(0, 0, 0, math.max(0, visibleCount * 26))
-        self.ListHolder.Size = UDim2.new(1, 0, 0, self.Open and (rowCount * 26 + searchHeight + paddingHeight) or 0)
+        local searchHeight = self.Searchable and 30 or 0
+        local paddingHeight = 10
+        self.List.Size = UDim2.new(1, 0, 0, rowCount * 28)
+        self.List.CanvasSize = UDim2.new(0, 0, 0, math.max(0, visibleCount * 28))
+        self.ListHolder.Size = UDim2.new(1, 0, 0, self.Open and (rowCount * 28 + searchHeight + paddingHeight) or 0)
     end
 
     function option:BuildDropdownList()
@@ -2590,12 +2617,12 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
                 AutoButtonColor = false,
                 BackgroundColor3 = active and self.Library.Theme.BorderStrong or self.Library.Theme.Input,
                 BorderSizePixel = 0,
-                Size = UDim2.new(1, 0, 0, 24),
+                Size = UDim2.new(1, 0, 0, 26),
                 Text = value == nil and "None" or tostring(getDisplayValue(self, value)),
                 TextColor3 = disabledValue and self.Library.Theme.MutedText or (active and self.Library.Theme.Text or self.Library.Theme.SubText),
                 TextTruncate = Enum.TextTruncate.AtEnd,
             })
-            applyTextStyle(entry, 13, active and "medium" or "regular")
+            applyTextStyle(entry, 14, active and "medium" or "regular")
             makeCorner(entry, 6)
             applyActiveText(entry, active)
             entry.MouseEnter:Connect(function()
@@ -2761,23 +2788,23 @@ TabboxPage.AddDropdown = addDropdown
 local function addKeybind(container, flagOrConfig, maybeConfig)
     local config = parseFlagConfig(flagOrConfig, maybeConfig)
     local text = config.Text or config.Flag or "Keybind"
-    local row = createRow(container, 28)
+    local row = createRow(container, 32)
     local label = create("TextLabel", {
         Parent = row,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -134, 1, 0),
+        Size = UDim2.new(1, -146, 1, 0),
         Text = text,
         TextColor3 = container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "medium")
+    applyTextStyle(label, 15, "medium")
 
     local modeButton = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(56, 22),
+        Size = UDim2.fromOffset(60, 24),
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
@@ -2792,13 +2819,13 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(modeLabel, 11, "medium")
+    applyTextStyle(modeLabel, 12, "medium")
 
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
-        Position = UDim2.new(1, -62, 0.5, 0),
-        Size = UDim2.fromOffset(70, 22),
+        Position = UDim2.new(1, -66, 0.5, 0),
+        Size = UDim2.fromOffset(74, 24),
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
@@ -2813,7 +2840,7 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(valueLabel, 13, "regular")
+    applyTextStyle(valueLabel, 14, "regular")
 
     local option = attachElementCommon(setmetatable({
         Library = container.Library,
@@ -3051,12 +3078,13 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 13, "medium")
+    row.Size = UDim2.new(1, 0, 0, 30)
+    applyTextStyle(label, 15, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
         Position = UDim2.new(1, 0, 0.5, 0),
-        Size = UDim2.fromOffset(58, 22),
+        Size = UDim2.fromOffset(64, 24),
         AutoButtonColor = false,
         BackgroundColor3 = container.Library.Theme.Input,
         BorderSizePixel = 0,
@@ -3082,7 +3110,7 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(hexLabel, 12, "regular")
+    applyTextStyle(hexLabel, 13, "regular")
     local editor = create("Frame", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Surface,
@@ -3318,8 +3346,8 @@ function Tabbox:_setup()
     self.Header = create("Frame", {
         Parent = self.Frame,
         BackgroundTransparency = 1,
-        Position = UDim2.fromOffset(0, 26),
-        Size = UDim2.new(1, 0, 0, 28),
+        Position = UDim2.fromOffset(0, 30),
+        Size = UDim2.new(1, 0, 0, 30),
     })
     self.Buttons = create("Frame", { Parent = self.Header, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1) })
     create("UIListLayout", { Parent = self.Buttons, FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8) })
@@ -3327,11 +3355,11 @@ function Tabbox:_setup()
         Parent = self.Frame,
         BackgroundColor3 = self.Library.Theme.Border,
         BorderSizePixel = 0,
-        Position = UDim2.fromOffset(0, 58),
+        Position = UDim2.fromOffset(0, 62),
         Size = UDim2.new(1, 0, 0, 1),
     })
     bindTheme(self.Library, line, "BackgroundColor3", "Border")
-    self.ContentFrame.Position = UDim2.fromOffset(0, 68)
+    self.ContentFrame.Position = UDim2.fromOffset(0, 72)
     self.Tabs = {}
     self.ActiveTab = nil
 end
@@ -3345,11 +3373,11 @@ function Tabbox:AddTab(title)
         BackgroundTransparency = 1,
         AutoButtonColor = false,
         AutomaticSize = Enum.AutomaticSize.X,
-        Size = UDim2.fromOffset(0, 22),
+        Size = UDim2.fromOffset(0, 24),
         Text = title,
         TextColor3 = self.Library.Theme.SubText,
     })
-    applyTextStyle(button, 13, "medium")
+    applyTextStyle(button, 15, "medium")
     local page = setmetatable({
         Library = self.Library,
         Window = self.Window,
