@@ -374,6 +374,10 @@ function Library:CreateWindow(config)
     New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Parent = MainFrame })
     Library:AddToRegistry(MainFrame:FindFirstChildOfClass("UIStroke"), { Color = "OutlineColor" })
     
+    local baseScale = config.Scale or 1.25 -- 1.25 default scale so it doesn't look tiny on 1080p
+    Library.DPIScale = baseScale
+    New("UIScale", { Scale = baseScale, Parent = MainFrame })
+    
     Library.Toggled = autoShow
     Library.MainFrame = MainFrame
     
@@ -701,65 +705,73 @@ function Library:CreateWindow(config)
         --======================================================================
         -- GROUPBOX CREATION
         --======================================================================
-        local function CreateGroupbox(name, gbIcon, parent)
-            local gb = New("Frame", {
-                BackgroundColor3 = "MainColor",
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
-                Parent = parent,
-            })
-            New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = gb })
-            New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Parent = gb })
-            Library:AddToRegistry(gb:FindFirstChildOfClass("UIStroke"), { Color = "OutlineColor" })
-            New("UIPadding", {
-                PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10),
-                PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
-                Parent = gb,
-            })
+        local function CreateGroupbox(name, gbIcon, parent, isInline)
+            local gb, elementList
             
-            -- Title row
-            local titleRow = New("Frame", {
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 20),
-                LayoutOrder = -1,
-                Parent = gb,
-            })
-            New("UIListLayout", {
-                FillDirection = Enum.FillDirection.Horizontal,
-                VerticalAlignment = Enum.VerticalAlignment.Center,
-                Padding = UDim.new(0, 6),
-                Parent = titleRow,
-            })
-            
-            if gbIcon then
-                New("ImageLabel", {
-                    Size = UDim2.fromOffset(16, 16),
-                    Image = typeof(gbIcon) == "number" and ("rbxassetid://" .. gbIcon) or gbIcon,
-                    ImageColor3 = Library.Scheme.FontColor,
-                    ImageTransparency = 0.3,
-                    ScaleType = Enum.ScaleType.Fit,
+            if isInline then
+                -- Inline mode: no visual frame, elements go directly into parent
+                gb = parent
+                elementList = parent
+            else
+                gb = New("Frame", {
+                    BackgroundColor3 = "MainColor",
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = parent,
+                })
+                New("UICorner", { CornerRadius = UDim.new(0, 8), Parent = gb })
+                New("UIStroke", { Color = Library.Scheme.OutlineColor, Thickness = 1, Parent = gb })
+                Library:AddToRegistry(gb:FindFirstChildOfClass("UIStroke"), { Color = "OutlineColor" })
+                New("UIPadding", {
+                    PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10),
+                    PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
+                    Parent = gb,
+                })
+                
+                -- Title row
+                local titleRow = New("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 20),
+                    LayoutOrder = -1,
+                    Parent = gb,
+                })
+                New("UIListLayout", {
+                    FillDirection = Enum.FillDirection.Horizontal,
+                    VerticalAlignment = Enum.VerticalAlignment.Center,
+                    Padding = UDim.new(0, 6),
                     Parent = titleRow,
                 })
+                
+                if gbIcon then
+                    New("ImageLabel", {
+                        Size = UDim2.fromOffset(16, 16),
+                        Image = typeof(gbIcon) == "number" and ("rbxassetid://" .. gbIcon) or gbIcon,
+                        ImageColor3 = Library.Scheme.FontColor,
+                        ImageTransparency = 0.3,
+                        ScaleType = Enum.ScaleType.Fit,
+                        Parent = titleRow,
+                    })
+                end
+                
+                New("TextLabel", {
+                    AutomaticSize = Enum.AutomaticSize.XY,
+                    Text = name or "Group",
+                    TextSize = 14,
+                    Parent = titleRow,
+                })
+                
+                -- Element list
+                elementList = New("Frame", {
+                    BackgroundTransparency = 1,
+                    Size = UDim2.new(1, 0, 0, 0),
+                    AutomaticSize = Enum.AutomaticSize.Y,
+                    Parent = gb,
+                })
+                New("UIListLayout", { Padding = UDim.new(0, 2), Parent = elementList })
+                
+                -- Groupbox layout
+                New("UIListLayout", { Padding = UDim.new(0, 6), Parent = gb })
             end
-            
-            New("TextLabel", {
-                AutomaticSize = Enum.AutomaticSize.XY,
-                Text = name or "Group",
-                TextSize = 14,
-                Parent = titleRow,
-            })
-            
-            -- Element list
-            local elementList = New("Frame", {
-                BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
-                Parent = gb,
-            })
-            New("UIListLayout", { Padding = UDim.new(0, 2), Parent = elementList })
-            
-            -- Groupbox layout
-            New("UIListLayout", { Padding = UDim.new(0, 6), Parent = gb })
             
             --==================================================================
             -- GROUPBOX OBJECT (Element methods will be added)
@@ -863,10 +875,12 @@ function Library:CreateWindow(config)
                 -- Return toggle for chaining :AddKeyPicker / :AddColorPicker
                 local chainObj = setmetatable({}, { __index = toggle })
                 function chainObj:AddKeyPicker(kpIdx, kpInfo)
-                    return Groupbox:_AddKeyPicker(kpIdx, kpInfo, row, toggle)
+                    Groupbox:_AddKeyPicker(kpIdx, kpInfo, row, toggle)
+                    return chainObj
                 end
                 function chainObj:AddColorPicker(cpIdx, cpInfo)
-                    return Groupbox:_AddColorPicker(cpIdx, cpInfo, row)
+                    Groupbox:_AddColorPicker(cpIdx, cpInfo, row)
+                    return chainObj
                 end
                 
                 return chainObj
@@ -1311,10 +1325,12 @@ function Library:CreateWindow(config)
                 
                 local chain = setmetatable({}, { __index = labelObj })
                 function chain:AddColorPicker(cpIdx, cpInfo)
-                    return Groupbox:_AddColorPicker(cpIdx, cpInfo, lbl)
+                    Groupbox:_AddColorPicker(cpIdx, cpInfo, lbl)
+                    return chain
                 end
                 function chain:AddKeyPicker(kpIdx, kpInfo)
-                    return Groupbox:_AddKeyPicker(kpIdx, kpInfo, lbl, nil)
+                    Groupbox:_AddKeyPicker(kpIdx, kpInfo, lbl, nil)
+                    return chain
                 end
                 
                 table.insert(Labels, labelObj)
@@ -1555,10 +1571,12 @@ function Library:CreateWindow(config)
                 
                 local chainObj = setmetatable({}, { __index = toggle })
                 function chainObj:AddKeyPicker(kpIdx, kpInfo)
-                    return Groupbox:_AddKeyPicker(kpIdx, kpInfo, row, toggle)
+                    Groupbox:_AddKeyPicker(kpIdx, kpInfo, row, toggle)
+                    return chainObj
                 end
                 function chainObj:AddColorPicker(cpIdx, cpInfo)
-                    return Groupbox:_AddColorPicker(cpIdx, cpInfo, row)
+                    Groupbox:_AddColorPicker(cpIdx, cpInfo, row)
+                    return chainObj
                 end
                 return chainObj
             end
@@ -2131,7 +2149,8 @@ function Library:CreateWindow(config)
                     PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12),
                     Parent = tabContent,
                 })
-                New("UIListLayout", { Padding = UDim.new(0, 2), Parent = tabContent })
+                local tabElementList = tabContent
+                New("UIListLayout", { Padding = UDim.new(0, 2), Parent = tabElementList })
                 
                 local subTab = { Container = tabContent, Button = tabHeaderBtn, ButtonHolder = tabHeaderBtn }
                 table.insert(Tabbox.Tabs, subTab)
@@ -2142,19 +2161,20 @@ function Library:CreateWindow(config)
                     st.Button.Size = UDim2.new(1 / count, 0, 1, 0)
                 end
                 
-                -- Inherit groupbox element methods from CreateGroupbox
-                local gb = CreateGroupbox(nil, nil, tabContent)
-                -- Copy all methods from gb to subTab
+                -- Inherit groupbox element methods via inline mode
+                local gb = CreateGroupbox(nil, nil, tabContent, true)
+                -- Copy methods to subTab
                 for k, fn in pairs(gb) do
                     if typeof(fn) == "function" then subTab[k] = fn end
                 end
-                subTab.Container = gb.Container
                 subTab.Elements = {}
                 subTab.DependencyBoxes = {}
                 
                 function subTab:Show()
                     Tabbox:SelectTab(subTab)
                 end
+                
+                function subTab:Resize() end
                 
                 tabHeaderBtn.MouseButton1Click:Connect(function()
                     Tabbox:SelectTab(subTab)
@@ -2172,10 +2192,8 @@ function Library:CreateWindow(config)
                 Tabbox.ActiveTab = subTab
                 for _, st in pairs(Tabbox.Tabs) do
                     st.Button.TextTransparency = (st == subTab) and 0 or 0.5
-                    -- Show/hide content for the parent frame
-                    local contentParent = st.Button.Parent and st.Container and st.Container.Parent
-                    if contentParent then
-                        contentParent.Visible = (st == subTab)
+                    if st.Container then
+                        st.Container.Visible = (st == subTab)
                     end
                 end
             end
@@ -2370,7 +2388,12 @@ end
 
 function Library:SetDPIScale(scale)
     Library.DPIScale = (scale or 100) / 100
-    -- DPI scaling can be applied to MainFrame if needed
+    if Library.MainFrame then
+        local uiScale = Library.MainFrame:FindFirstChildOfClass("UIScale")
+        if uiScale then
+            uiScale.Scale = Library.DPIScale
+        end
+    end
 end
 
 -- Store notification area reference
