@@ -108,8 +108,8 @@ end
 local function applyTextStyle(object, size, weight)
     object.Font = getFont(weight)
     object.TextSize = size
-    trySetFontFace(object, "rbxasset://fonts/families/BuilderSans.json", weight == "bold" and Enum.FontWeight.Bold or weight == "medium" and Enum.FontWeight.SemiBold or Enum.FontWeight.Regular)
     trySetFontFace(object, "rbxasset://fonts/families/GothamSSm.json", weight == "bold" and Enum.FontWeight.Bold or weight == "medium" and Enum.FontWeight.Medium or Enum.FontWeight.Regular)
+    trySetFontFace(object, "rbxasset://fonts/families/Gotham.json", weight == "bold" and Enum.FontWeight.Bold or weight == "medium" and Enum.FontWeight.Medium or Enum.FontWeight.Regular)
 end
 
 local function clamp(value, minimum, maximum)
@@ -569,20 +569,20 @@ function Library.new()
     self.ThemeName = "Kojo"
     self.Themes = {
         Kojo = {
-            Shell = Color3.fromRGB(10, 11, 14),
-            Sidebar = Color3.fromRGB(11, 12, 16),
+            Shell = Color3.fromRGB(7, 8, 10),
+            Sidebar = Color3.fromRGB(9, 10, 12),
             Surface = Color3.fromRGB(12, 13, 17),
-            Inset = Color3.fromRGB(10, 11, 14),
-            Input = Color3.fromRGB(29, 32, 41),
-            InputHover = Color3.fromRGB(35, 38, 50),
-            Border = Color3.fromRGB(25, 28, 35),
-            BorderStrong = Color3.fromRGB(33, 37, 46),
-            Accent = Color3.fromRGB(184, 165, 196),
-            AccentMuted = Color3.fromRGB(87, 98, 129),
-            AccentStrong = Color3.fromRGB(232, 228, 236),
-            Text = Color3.fromRGB(235, 236, 239),
-            SubText = Color3.fromRGB(103, 113, 143),
-            MutedText = Color3.fromRGB(80, 87, 110),
+            Inset = Color3.fromRGB(9, 10, 13),
+            Input = Color3.fromRGB(33, 36, 46),
+            InputHover = Color3.fromRGB(40, 44, 56),
+            Border = Color3.fromRGB(22, 24, 29),
+            BorderStrong = Color3.fromRGB(29, 31, 38),
+            Accent = Color3.fromRGB(202, 184, 214),
+            AccentMuted = Color3.fromRGB(101, 112, 145),
+            AccentStrong = Color3.fromRGB(243, 239, 247),
+            Text = Color3.fromRGB(240, 241, 244),
+            SubText = Color3.fromRGB(109, 119, 150),
+            MutedText = Color3.fromRGB(73, 80, 101),
             Shadow = Color3.fromRGB(0, 0, 0),
         },
         Slate = {
@@ -2207,24 +2207,28 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         Parent = frame,
         BackgroundTransparency = 1,
         Visible = not compact,
-        Size = UDim2.new(1, -64, 0, 18),
+        Size = UDim2.new(1, -72, 0, 18),
         Text = text,
         TextColor3 = container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
     applyTextStyle(label, 13, "medium")
-    local valueLabel = create("TextLabel", {
+    local valueBox = create("TextBox", {
         Parent = frame,
-        BackgroundTransparency = 1,
+        BackgroundColor3 = container.Library.Theme.Input,
+        BorderSizePixel = 0,
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, compact and -2 or 0),
-        Size = UDim2.fromOffset(60, 18),
+        Size = UDim2.fromOffset(48, 22),
         Text = "",
         TextColor3 = container.Library.Theme.SubText,
-        TextXAlignment = Enum.TextXAlignment.Right,
+        PlaceholderText = "",
+        ClearTextOnFocus = false,
+        TextXAlignment = Enum.TextXAlignment.Center,
     })
-    applyTextStyle(valueLabel, 13, "regular")
+    applyTextStyle(valueBox, 12, "regular")
+    makeCorner(valueBox, 6)
     local bar = create("TextButton", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
@@ -2262,7 +2266,7 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         Callback = config.Callback or config.Changed,
         Frame = frame,
         Label = label,
-        ValueLabel = valueLabel,
+        ValueBox = valueBox,
         Bar = bar,
         Fill = fill,
         Thumb = thumb,
@@ -2284,7 +2288,9 @@ local function addSlider(container, flagOrConfig, maybeConfig)
 
     function option:UpdateTheme()
         self.Label.TextColor3 = self.Disabled and self.Library.Theme.MutedText or self.Library.Theme.Text
-        self.ValueLabel.TextColor3 = self.Disabled and self.Library.Theme.MutedText or self.Library.Theme.SubText
+        self.ValueBox.TextColor3 = self.Disabled and self.Library.Theme.MutedText or self.Library.Theme.SubText
+        self.ValueBox.BackgroundColor3 = self.Disabled and self.Library.Theme.Surface or self.Library.Theme.Input
+        self.ValueBox.TextEditable = not self.Disabled
         self.Bar.BackgroundColor3 = self.Disabled and self.Library.Theme.Surface or self.Library.Theme.Input
         self.Fill.BackgroundColor3 = self.Disabled and self.Library.Theme.MutedText or self.Library.Theme.Accent
         self.Thumb.BackgroundColor3 = self.Disabled and self.Library.Theme.MutedText or self.Library.Theme.AccentStrong
@@ -2308,7 +2314,9 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         local percent = (clamped - self.Min) / math.max(self.Max - self.Min, 0.00001)
         self.Fill.Size = UDim2.fromScale(percent, 1)
         self.Thumb.Position = UDim2.new(percent, 0, 0.5, 0)
-        self.ValueLabel.Text = self:_formatValue(clamped)
+        if not self._editingValue then
+            self.ValueBox.Text = self:_formatValue(clamped)
+        end
         if not silent then
             self:TriggerChanged()
         end
@@ -2342,6 +2350,22 @@ local function addSlider(container, flagOrConfig, maybeConfig)
     bar.MouseButton1Down:Connect(function(x, y)
         dragging = true
         updateFromInput({ Position = Vector2.new(x, y) })
+    end)
+    valueBox.Focused:Connect(function()
+        option._editingValue = true
+        valueBox.Text = tostring(roundTo(option.Value, option.Decimals, option.Increment))
+        option:UpdateTheme()
+    end)
+    valueBox.FocusLost:Connect(function()
+        option._editingValue = false
+        local raw = tostring(valueBox.Text or ""):gsub("[^%d%.%-]", "")
+        local numberValue = tonumber(raw)
+        if numberValue ~= nil then
+            option:SetValue(numberValue)
+        else
+            option:SetValue(option.Value, true)
+        end
+        option:UpdateTheme()
     end)
     container.Library:_track(UserInputService.InputChanged:Connect(function(input)
         if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
