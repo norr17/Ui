@@ -145,6 +145,36 @@ function Library:SetFont(fontFace)
 end
 
 --==============================================================================
+-- ICONS (Lucide support)
+--==============================================================================
+local FetchIcons, Icons = pcall(function()
+    return loadstring(game:HttpGet("https://raw.githubusercontent.com/deividcomsono/lucide-roblox-direct/refs/heads/main/source.lua"))()
+end)
+
+function Library:GetIcon(iconName)
+    if typeof(iconName) == "number" then return { Url = "rbxassetid://" .. iconName } end
+    if typeof(iconName) == "string" then
+        if FetchIcons and (iconName:match("^lucide%-") or Icons.GetAsset(iconName)) then
+            local ok, asset = pcall(Icons.GetAsset, iconName)
+            if ok and asset then
+                return { Url = asset.Url, ImageRectOffset = asset.ImageRectOffset, ImageRectSize = asset.ImageRectSize }
+            end
+        end
+        if iconName:match("^rbxassetid://") or iconName:match("^http") then return { Url = iconName } end
+    end
+    return nil
+end
+
+function Library:ApplyIcon(imgLabel, iconName)
+    local icon = Library:GetIcon(iconName)
+    if icon then
+        imgLabel.Image = icon.Url
+        if icon.ImageRectOffset then imgLabel.ImageRectOffset = icon.ImageRectOffset end
+        if icon.ImageRectSize then imgLabel.ImageRectSize = icon.ImageRectSize end
+    end
+end
+
+--==============================================================================
 -- INSTANCE CREATOR
 --==============================================================================
 local function New(class, props)
@@ -535,11 +565,12 @@ function Library:CreateWindow(config)
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 Position = UDim2.fromScale(0.5, 0.5),
                 Size = catIconSize,
-                Image = typeof(catIcon) == "number" and ("rbxassetid://" .. catIcon) or catIcon,
+                BackgroundTransparency = 1,
                 ImageTransparency = 0.5,
                 ScaleType = Enum.ScaleType.Fit,
                 Parent = catBtn,
             })
+            Library:ApplyIcon(catImg, catIcon)
         end
         
         local catData = { Button = catBtn, Icon = catImg, Obj = catObj }
@@ -743,14 +774,15 @@ function Library:CreateWindow(config)
                 })
                 
                 if gbIcon then
-                    New("ImageLabel", {
+                    local gbImg = New("ImageLabel", {
                         Size = UDim2.fromOffset(16, 16),
-                        Image = typeof(gbIcon) == "number" and ("rbxassetid://" .. gbIcon) or gbIcon,
+                        BackgroundTransparency = 1,
                         ImageColor3 = Library.Scheme.FontColor,
                         ImageTransparency = 0.3,
                         ScaleType = Enum.ScaleType.Fit,
                         Parent = titleRow,
                     })
+                    Library:ApplyIcon(gbImg, gbIcon)
                 end
                 
                 New("TextLabel", {
