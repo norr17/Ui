@@ -195,7 +195,7 @@ local Library = {
     OriginalMinSize = Vector2.new(580, 420),
     MinSize = Vector2.new(580, 420),
     DPIScale = 1,
-    CornerRadius = 8,
+    CornerRadius = 12,
 
     IsLightTheme = false,
     Scheme = {
@@ -6174,53 +6174,34 @@ function Library:CreateWindow(WindowInfo)
             Parent = RightWrapper,
         })
 
-        CurrentTabInfo = New("Frame", {
-            Size = UDim2.fromScale(WindowInfo.DisableSearch and 1 or 0.5, 1),
-            Visible = false,
+        TopTabsFrame = New("ScrollingFrame", {
             BackgroundTransparency = 1,
+            Size = UDim2.fromScale(1, 1),
+            CanvasSize = UDim2.fromScale(0, 0),
+            ScrollBarThickness = 0,
             Parent = RightWrapper,
         })
-
-        New("UIFlexItem", {
-            FlexMode = Enum.UIFlexMode.Grow,
-            Parent = CurrentTabInfo,
-        })
-
         New("UIListLayout", {
-            FillDirection = Enum.FillDirection.Vertical,
+            FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Center,
-            Parent = CurrentTabInfo,
+            Padding = UDim.new(0, 16),
+            Parent = TopTabsFrame,
+        })
+        New("UIFlexItem", {
+            FlexMode = Enum.UIFlexMode.Grow,
+            Parent = TopTabsFrame,
         })
 
-        New("UIPadding", {
-            PaddingBottom = UDim.new(0, 8),
-            PaddingLeft = UDim.new(0, 8),
-            PaddingRight = UDim.new(0, 8),
-            PaddingTop = UDim.new(0, 8),
-            Parent = CurrentTabInfo,
-        })
-
-        CurrentTabLabel = New("TextLabel", {
+        local BreadcrumbLabel = New("TextLabel", {
             BackgroundTransparency = 1,
-            Size = UDim2.fromScale(1, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            Text = "",
+            AutomaticSize = Enum.AutomaticSize.XY,
+            Text = ">   " .. WindowInfo.Title .. "   /",
             TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = CurrentTabInfo,
-        })
-
-        CurrentTabDescription = New("TextLabel", {
-            BackgroundTransparency = 1,
-            Size = UDim2.fromScale(1, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            Text = "",
-            TextWrapped = true,
-            TextSize = 14,
-            TextXAlignment = Enum.TextXAlignment.Left,
+            TextColor3 = Library.Scheme.FontColor,
             TextTransparency = 0.5,
-            Parent = CurrentTabInfo,
+            LayoutOrder = -1,
+            Parent = TopTabsFrame,
         })
 
         SearchBox = New("TextBox", {
@@ -6432,18 +6413,107 @@ function Library:CreateWindow(WindowInfo)
     end
 
     function Window:ShowTabInfo(Name, Description)
-        CurrentTabLabel.Text = "/     " .. Name
-        CurrentTabDescription.Text = Description
-
         if IsDefaultSearchbarSize then
             SearchBox.Size = UDim2.fromScale(0.5, 1)
         end
-        CurrentTabInfo.Visible = true
     end
     function Window:HideTabInfo()
-        CurrentTabInfo.Visible = false
         if IsDefaultSearchbarSize then
             SearchBox.Size = UDim2.fromScale(1, 1)
+        end
+    end
+
+    Window.Categories = {}
+    Window.ActiveCategory = nil
+
+    function Window:AddCategory(Info)
+        local Name = Info.Name or "Category"
+        local Icon = Info.Icon or "list"
+
+        local CategoryObj = { Name = Name, Tabs = {} }
+        
+        local CatButton = New("TextButton", {
+            BackgroundColor3 = "MainColor",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 40),
+            Text = "",
+            Parent = Tabs,
+        })
+        
+        local ButtonPadding = New("UIPadding", {
+            PaddingBottom = UDim.new(0, IsCompact and 6 or 11),
+            PaddingLeft = UDim.new(0, IsCompact and 6 or 12),
+            PaddingRight = UDim.new(0, IsCompact and 6 or 12),
+            PaddingTop = UDim.new(0, IsCompact and 6 or 11),
+            Parent = CatButton,
+        })
+
+        Icon = Library:GetCustomIcon(Icon) or Library:GetCustomIcon("list")
+        local CatIcon = New("ImageLabel", {
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            Position = UDim2.fromScale(0.5, 0.5),
+            Image = Icon.Url,
+            ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
+            ImageRectOffset = Icon.ImageRectOffset,
+            ImageRectSize = Icon.ImageRectSize,
+            ImageTransparency = 0.5,
+            ScaleType = Enum.ScaleType.Fit,
+            Size = UDim2.fromScale(0.8, 0.8),
+            SizeConstraint = Enum.SizeConstraint.RelativeXY,
+            Parent = CatButton,
+        })
+
+        CatButton.MouseButton1Click:Connect(function()
+            Window:SelectCategory(CategoryObj)
+        end)
+
+        table.insert(Window.Categories, { Button = CatButton, Icon = CatIcon, Obj = CategoryObj })
+
+        function CategoryObj:AddTab(...)
+            local Tab = Window:AddTab(...)
+            Tab.Category = CategoryObj
+            table.insert(self.Tabs, Tab)
+            
+            -- Hide if not active category
+            if Window.ActiveCategory ~= self then
+                Tab.TabButton.Visible = false
+            end
+            
+            return Tab
+        end
+
+        if not Window.ActiveCategory then
+            Window:SelectCategory(CategoryObj)
+        end
+
+        return CategoryObj
+    end
+
+    function Window:SelectCategory(CategoryObj)
+        Window.ActiveCategory = CategoryObj
+        
+        for _, catInfo in pairs(Window.Categories) do
+            if catInfo.Obj == CategoryObj then
+                catInfo.Icon.ImageTransparency = 0
+            else
+                catInfo.Icon.ImageTransparency = 0.5
+            end
+        end
+
+        local FirstTab = nil
+
+        for _, tabInfo in pairs(Library.Tabs) do
+            if tabInfo.Category == CategoryObj then
+                tabInfo.TabButton.Visible = true
+                if not FirstTab then FirstTab = tabInfo end
+            elseif tabInfo.Category then
+                tabInfo.TabButton.Visible = false
+                tabInfo.TabContainer.Visible = false
+            end
+        end
+        
+        if FirstTab then
+            FirstTab:Show()
         end
     end
 
@@ -6476,44 +6546,34 @@ function Library:CreateWindow(WindowInfo)
             TabButton = New("TextButton", {
                 BackgroundColor3 = "MainColor",
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 40),
+                Size = UDim2.new(0, 0, 1, 0),
+                AutomaticSize = Enum.AutomaticSize.X,
                 Text = "",
-                Parent = Tabs,
+                Parent = TopTabsFrame,
             })
             local ButtonPadding = New("UIPadding", {
-                PaddingBottom = UDim.new(0, IsCompact and 6 or 11),
-                PaddingLeft = UDim.new(0, IsCompact and 6 or 12),
-                PaddingRight = UDim.new(0, IsCompact and 6 or 12),
-                PaddingTop = UDim.new(0, IsCompact and 6 or 11),
+                PaddingBottom = UDim.new(0, 0),
+                PaddingLeft = UDim.new(0, 8),
+                PaddingRight = UDim.new(0, 8),
+                PaddingTop = UDim.new(0, 0),
                 Parent = TabButton,
             })
 
             TabLabel = New("TextLabel", {
                 BackgroundTransparency = 1,
-                Position = UDim2.fromOffset(30, 0),
-                Size = UDim2.new(1, -30, 1, 0),
+                Position = UDim2.fromScale(0, 0),
+                Size = UDim2.new(1, 0, 1, 0),
                 Text = Name,
-                TextSize = 16,
+                TextSize = 14,
                 TextTransparency = 0.5,
                 TextXAlignment = Enum.TextXAlignment.Left,
-                Visible = false, -- Enforce icon-only sidebar
+                Visible = true,
                 Parent = TabButton,
             })
 
             if Icon then
-                TabIcon = New("ImageLabel", {
-                    AnchorPoint = Vector2.new(0.5, 0.5),
-                    Position = UDim2.fromScale(0.5, 0.5),
-                    Image = Icon.Url,
-                    ImageColor3 = Icon.Custom and "WhiteColor" or "AccentColor",
-                    ImageRectOffset = Icon.ImageRectOffset,
-                    ImageRectSize = Icon.ImageRectSize,
-                    ImageTransparency = 0.5,
-                    ScaleType = Enum.ScaleType.Fit,
-                    Size = UDim2.fromScale(0.8, 0.8),
-                    SizeConstraint = Enum.SizeConstraint.RelativeXY,
-                    Parent = TabButton,
-                })
+                -- Icons are no longer supported on TopTabs for Aikeo styling.
+                TabIcon = nil
             end
 
             table.insert(Library.TabButtons, {
