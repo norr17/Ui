@@ -761,11 +761,18 @@ function Library:CreateWindow(config)
                     Parent = gb,
                 })
                 
+                -- Groupbox layout (must be FIRST so SortOrder works)
+                New("UIListLayout", {
+                    SortOrder = Enum.SortOrder.LayoutOrder,
+                    Padding = UDim.new(0, 6),
+                    Parent = gb,
+                })
+                
                 -- Title row
                 local titleRow = New("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 20),
-                    LayoutOrder = -1,
+                    LayoutOrder = 0,
                     Parent = gb,
                 })
                 New("UIListLayout", {
@@ -777,10 +784,10 @@ function Library:CreateWindow(config)
                 
                 if gbIcon then
                     local gbImg = New("ImageLabel", {
-                        Size = UDim2.fromOffset(16, 16),
+                        Size = UDim2.fromOffset(14, 14),
                         BackgroundTransparency = 1,
                         ImageColor3 = Library.Scheme.FontColor,
-                        ImageTransparency = 0.3,
+                        ImageTransparency = 0.1,
                         ScaleType = Enum.ScaleType.Fit,
                         Parent = titleRow,
                     })
@@ -790,8 +797,17 @@ function Library:CreateWindow(config)
                 New("TextLabel", {
                     AutomaticSize = Enum.AutomaticSize.XY,
                     Text = name or "Group",
-                    TextSize = 14,
+                    TextSize = 13,
+                    TextTransparency = 0,
                     Parent = titleRow,
+                })
+                
+                -- Header separator line (like Aikeo)
+                New("Frame", {
+                    Size = UDim2.new(1, 0, 0, 1),
+                    BackgroundColor3 = "OutlineColor",
+                    LayoutOrder = 1,
+                    Parent = gb,
                 })
                 
                 -- Element list
@@ -799,12 +815,10 @@ function Library:CreateWindow(config)
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 0),
                     AutomaticSize = Enum.AutomaticSize.Y,
+                    LayoutOrder = 2,
                     Parent = gb,
                 })
                 New("UIListLayout", { Padding = UDim.new(0, 2), Parent = elementList })
-                
-                -- Groupbox layout
-                New("UIListLayout", { Padding = UDim.new(0, 6), Parent = gb })
             end
             
             --==================================================================
@@ -838,7 +852,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(1, -34, 1, 0),
                     Text = text,
                     TextSize = 13,
-                    TextTransparency = disabled and 0.5 or (risky and 0 or 0.3),
+                    TextTransparency = disabled and 0.5 or (risky and 0 or 0.1),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextColor3 = risky and Library.Scheme.RedColor or nil,
                     Parent = row,
@@ -948,7 +962,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(0.6, 0, 0, 16),
                     Text = text,
                     TextSize = 13,
-                    TextTransparency = 0.3,
+                    TextTransparency = 0.1,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = container,
                 })
@@ -1285,7 +1299,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(0.45, 0, 1, 0),
                     Text = text,
                     TextSize = 13,
-                    TextTransparency = 0.3,
+                    TextTransparency = 0.1,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = container,
                 })
@@ -1350,7 +1364,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(1, 0, 0, size or 20),
                     Text = text,
                     TextSize = size or 13,
-                    TextTransparency = 0.3,
+                    TextTransparency = 0.1,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextWrapped = doesWrap or false,
                     AutomaticSize = doesWrap and Enum.AutomaticSize.Y or nil,
@@ -1522,7 +1536,8 @@ function Library:CreateWindow(config)
                 return buttonObj
             end
             
-            -- CHECKBOX (same as Toggle but with square vi            function Groupbox:AddCheckbox(idx, info)
+            -- CHECKBOX (same as Toggle but with square visual)
+            function Groupbox:AddCheckbox(idx, info)
                 info = info or {}
                 local text = info.Text or "Checkbox"
                 local default = info.Default or false
@@ -1543,7 +1558,7 @@ function Library:CreateWindow(config)
                     Size = UDim2.new(1, -26, 1, 0),
                     Text = text,
                     TextSize = 13,
-                    TextTransparency = disabled and 0.5 or (risky and 0 or 0.3),
+                    TextTransparency = disabled and 0.5 or (risky and 0 or 0.1),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextColor3 = risky and Library.Scheme.RedColor or nil,
                     Parent = row,
@@ -1593,7 +1608,7 @@ function Library:CreateWindow(config)
                     TweenService:Create(boxFrame, TweenInfo.new(0.2), { BackgroundColor3 = color }):Play()
                     TweenService:Create(stroke, TweenInfo.new(0.2), { Color = outline }):Play()
                     TweenService:Create(checkmark, TweenInfo.new(0.2), { TextTransparency = v and 0 or 1 }):Play()
-                end     end
+                end
                 
                 function toggle:SetValue(v)
                     toggle.Value = v
@@ -2137,6 +2152,7 @@ function Library:CreateWindow(config)
             local headerRow = New("Frame", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 28),
+                LayoutOrder = 0,
                 Parent = tbFrame,
             })
             New("UIListLayout", {
@@ -2144,26 +2160,36 @@ function Library:CreateWindow(config)
                 Parent = headerRow,
             })
             
-            -- Bottom border under header
+            -- Bottom border under header (parented to tbFrame, NOT headerRow)
+            local borderHolder = New("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 1),
+                LayoutOrder = 1,
+                Parent = tbFrame,
+            })
             New("Frame", {
-                AnchorPoint = Vector2.new(0, 1),
-                Position = UDim2.new(0, 8, 1, 0),
+                AnchorPoint = Vector2.new(0.5, 0),
+                Position = UDim2.new(0.5, 0, 0, 0),
                 Size = UDim2.new(1, -16, 0, 1),
                 BackgroundColor3 = "OutlineColor",
-                Parent = headerRow,
+                Parent = borderHolder,
             })
             
             -- Content area
             local contentArea = New("Frame", {
                 BackgroundTransparency = 1,
-                Position = UDim2.fromOffset(0, 28),
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
+                LayoutOrder = 2,
                 Parent = tbFrame,
             })
             
             -- Layout for tabbox frame
-            New("UIListLayout", { Padding = UDim.new(0, 0), Parent = tbFrame })
+            New("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 0),
+                Parent = tbFrame,
+            })
             
             local Tabbox = { Tabs = {}, ActiveTab = nil, BoxHolder = tbFrame }
             
@@ -2441,17 +2467,8 @@ function Library:SetDPIScale(scale)
     end
 end
 
--- Store notification area reference
-Library.NotificationArea = nil
-pcall(function()
-    -- Find notification area created during init
-    for _, child in pairs(ScreenGui:GetChildren()) do
-        if child:IsA("Frame") and child:FindFirstChildOfClass("UIListLayout") and child.Size == UDim2.new(0, 300, 1, -20) then
-            Library.NotificationArea = child
-            break
-        end
-    end
-end)
+-- Store notification area reference (direct assignment, not search)
+Library.NotificationArea = NotificationArea
 
 -- Export
 getgenv().Library = Library
