@@ -592,6 +592,8 @@ function Library.new()
             Accent = Color3.fromRGB(202, 184, 214),
             AccentMuted = Color3.fromRGB(101, 112, 145),
             AccentStrong = Color3.fromRGB(243, 239, 247),
+            ToggleOn = Color3.fromRGB(44, 38, 50),
+            ToggleKnobOn = Color3.fromRGB(206, 184, 224),
             Text = Color3.fromRGB(240, 241, 244),
             SubText = Color3.fromRGB(109, 119, 150),
             MutedText = Color3.fromRGB(73, 80, 101),
@@ -609,6 +611,8 @@ function Library.new()
             Accent = Color3.fromRGB(153, 176, 207),
             AccentMuted = Color3.fromRGB(92, 111, 145),
             AccentStrong = Color3.fromRGB(239, 242, 247),
+            ToggleOn = Color3.fromRGB(37, 43, 55),
+            ToggleKnobOn = Color3.fromRGB(173, 189, 219),
             Text = Color3.fromRGB(231, 235, 243),
             SubText = Color3.fromRGB(119, 131, 160),
             MutedText = Color3.fromRGB(83, 91, 113),
@@ -626,6 +630,8 @@ function Library.new()
             Accent = Color3.fromRGB(201, 163, 190),
             AccentMuted = Color3.fromRGB(122, 95, 128),
             AccentStrong = Color3.fromRGB(243, 232, 239),
+            ToggleOn = Color3.fromRGB(49, 34, 52),
+            ToggleKnobOn = Color3.fromRGB(216, 180, 205),
             Text = Color3.fromRGB(236, 233, 237),
             SubText = Color3.fromRGB(146, 116, 146),
             MutedText = Color3.fromRGB(98, 82, 103),
@@ -768,7 +774,7 @@ function Library:Notify(options)
         TextColor3 = self.Theme.Text,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(title, 15, "bold")
+    applyTextStyle(title, 16, "bold")
     bindTheme(self, title, "TextColor3", "Text")
 
     local body = create("TextLabel", {
@@ -783,7 +789,7 @@ function Library:Notify(options)
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
     })
-    applyTextStyle(body, 14, "regular")
+    applyTextStyle(body, 15, "regular")
     bindTheme(self, body, "TextColor3", "SubText")
 
     task.spawn(function()
@@ -874,7 +880,7 @@ function Library:AddDraggableLabel(text)
         Text = tostring(text or "Kojo Hub"),
         TextColor3 = self.Theme.Text,
     })
-    applyTextStyle(label, 14, "medium")
+    applyTextStyle(label, 15, "medium")
     makeCorner(label, 8)
     local stroke = makeStroke(label, 1)
     stroke.Color = self.Theme.BorderStrong
@@ -883,7 +889,7 @@ function Library:AddDraggableLabel(text)
     bindTheme(self, stroke, "Color", "BorderStrong")
     local dragging, dragStart, startPosition = false, nil, nil
     self:_track(label.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
             return
         end
         dragging = true
@@ -891,13 +897,13 @@ function Library:AddDraggableLabel(text)
         startPosition = label.Position
     end))
     self:_track(UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             label.Position = UDim2.new(startPosition.X.Scale, startPosition.X.Offset + delta.X, startPosition.Y.Scale, startPosition.Y.Offset + delta.Y)
         end
     end))
     self:_track(UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end))
@@ -923,6 +929,8 @@ function Library:CreateWindow(options)
         SidebarWidth = (options and options.SidebarWidth) or 72,
         NotifySide = (options and options.NotifySide) or self.NotifySide or "Right",
         CornerRadius = (options and options.CornerRadius) or 18,
+        MobileButtonsSide = (options and options.MobileButtonsSide) or "Right",
+        ShowMobileButtons = options == nil or options.ShowMobileButtons ~= false,
         Tabs = {},
         ActiveTab = nil,
         Visible = true,
@@ -1056,13 +1064,18 @@ function Window:Build()
         Position = UDim2.fromOffset(18, 12),
         Size = UDim2.new(1, -36, 0, 32),
     })
-    self.TrailLayout = create("UIListLayout", {
+    self.TrailLabel = create("TextLabel", {
         Parent = self.Trail,
-        FillDirection = Enum.FillDirection.Horizontal,
-        VerticalAlignment = Enum.VerticalAlignment.Center,
-        Padding = UDim.new(0, 10),
-        SortOrder = Enum.SortOrder.LayoutOrder,
+        BackgroundTransparency = 1,
+        Size = UDim2.fromScale(1, 1),
+        RichText = true,
+        Text = "",
+        TextColor3 = library.Theme.Text,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        TextXAlignment = Enum.TextXAlignment.Left,
     })
+    applyTextStyle(self.TrailLabel, 20, "medium")
+    bindTheme(library, self.TrailLabel, "TextColor3", "Text")
 
     self.Body = create("Frame", {
         Parent = self.Content,
@@ -1103,7 +1116,7 @@ function Window:Build()
             TextColor3 = library.Theme.MutedText,
             TextXAlignment = Enum.TextXAlignment.Right,
         })
-        applyTextStyle(self.FooterLabel, 12, "regular")
+        applyTextStyle(self.FooterLabel, 13, "regular")
         bindTheme(library, self.FooterLabel, "TextColor3", "MutedText")
     end
 
@@ -1127,7 +1140,7 @@ function Window:Build()
 
     local dragging, dragStart, startPosition = false, nil, nil
     library:_track(self.Root.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 then
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
             return
         end
         dragging = true
@@ -1141,7 +1154,7 @@ function Window:Build()
     end))
 
     library:_track(UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             self.Root.Position = UDim2.new(startPosition.X.Scale, startPosition.X.Offset + delta.X, startPosition.Y.Scale, startPosition.Y.Offset + delta.Y)
         end
@@ -1154,12 +1167,45 @@ function Window:Build()
         end
     end))
 
+    if UserInputService.TouchEnabled and self.ShowMobileButtons then
+        local mobileButton = create("TextButton", {
+            Parent = self.ScreenGui,
+            AnchorPoint = self.MobileButtonsSide == "Left" and Vector2.new(0, 0.5) or Vector2.new(1, 0.5),
+            Position = self.MobileButtonsSide == "Left" and UDim2.new(0, 14, 0.5, 0) or UDim2.new(1, -14, 0.5, 0),
+            Size = UDim2.fromOffset(42, 42),
+            AutoButtonColor = false,
+            BackgroundColor3 = library.Theme.Surface,
+            BorderSizePixel = 0,
+            Text = "M",
+            TextColor3 = library.Theme.Text,
+        })
+        makeCorner(mobileButton, 12)
+        local mobileStroke = makeStroke(mobileButton, 1)
+        mobileStroke.Color = library.Theme.BorderStrong
+        applyTextStyle(mobileButton, 20, "bold")
+        bindTheme(library, mobileButton, "BackgroundColor3", "Surface")
+        bindTheme(library, mobileButton, "TextColor3", "Text")
+        bindTheme(library, mobileStroke, "Color", "BorderStrong")
+        mobileButton.MouseButton1Click:Connect(function()
+            self:SetVisible(not self.Visible)
+        end)
+        self.MobileToggleButton = mobileButton
+    end
+
     self:_rebuildTrail()
 end
 
 function Window:SetVisible(state)
     self.Visible = state
-    self.ScreenGui.Enabled = state
+    if self.Root then
+        self.Root.Visible = state
+    end
+    if self.FooterLabel then
+        self.FooterLabel.Visible = state
+    end
+    if self.NotificationHolder then
+        self.NotificationHolder.Visible = state
+    end
 end
 
 function Window:SetCornerRadius(radius)
@@ -1189,9 +1235,14 @@ end
 
 function Window:UpdateTheme()
     setIconVisualColor(self.LogoIcon, self.Library.Theme.Accent)
+    if self.MobileToggleButton then
+        self.MobileToggleButton.BackgroundColor3 = self.Library.Theme.Surface
+        self.MobileToggleButton.TextColor3 = self.Library.Theme.Text
+    end
     for _, tab in ipairs(self.Tabs) do
         tab:UpdateVisual(tab == self.ActiveTab)
     end
+    self:_rebuildTrail()
 end
 
 function Window:_buildSidebarButton(tab)
@@ -1217,78 +1268,30 @@ function Window:_buildSidebarButton(tab)
 end
 
 function Window:_rebuildTrail()
-    for _, child in ipairs(self.Trail:GetChildren()) do
-        if child:IsA("GuiObject") and child ~= self.TrailLayout then
-            child:Destroy()
-        end
+    if not self.TrailLabel then
+        return
     end
 
-    local order = 1
-    local chevron = create("TextLabel", {
-        Parent = self.Trail,
-        BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.X,
-        Size = UDim2.fromOffset(0, 28),
-        LayoutOrder = order,
-        Text = ">",
-        TextColor3 = self.Library.Theme.Accent,
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    applyTextStyle(chevron, 19, "bold")
-    bindTheme(self.Library, chevron, "TextColor3", "Accent")
-    order = order + 1
+    local theme = self.Library.Theme
+    local accent = colorToHex(theme.Accent)
+    local accentStrong = colorToHex(theme.AccentStrong)
+    local text = colorToHex(theme.Text)
+    local subText = colorToHex(theme.SubText)
+    local parts = {
+        string.format('<font color="%s"><stroke color="#FFFFFF" transparency="0.82">></stroke></font>', accent),
+        string.format('<font color="%s"><stroke color="#FFFFFF" transparency="0.84">%s</stroke></font>', text, tostring(self.Title)),
+    }
 
-    local titleLabel = create("TextLabel", {
-        Parent = self.Trail,
-        BackgroundTransparency = 1,
-        AutomaticSize = Enum.AutomaticSize.X,
-        Size = UDim2.fromOffset(0, 28),
-        LayoutOrder = order,
-        Text = self.Title,
-        TextColor3 = self.Library.Theme.Text,
-        TextXAlignment = Enum.TextXAlignment.Left,
-    })
-    applyTextStyle(titleLabel, 18, "medium")
-    bindTheme(self.Library, titleLabel, "TextColor3", "Text")
-    self.TitleLabel = titleLabel
-    order = order + 1
-
-    for index, tab in ipairs(self.Tabs) do
-        local slash = create("TextLabel", {
-            Parent = self.Trail,
-            BackgroundTransparency = 1,
-            AutomaticSize = Enum.AutomaticSize.X,
-            Size = UDim2.fromOffset(0, 28),
-            LayoutOrder = order,
-            Text = "/",
-            TextColor3 = self.Library.Theme.AccentStrong,
-        })
-        applyTextStyle(slash, 17, "medium")
-        bindTheme(self.Library, slash, "TextColor3", "AccentStrong")
-        order = order + 1
-
-        tab.TrailButton = create("TextButton", {
-            Parent = self.Trail,
-            BackgroundTransparency = 1,
-            AutoButtonColor = false,
-            AutomaticSize = Enum.AutomaticSize.X,
-            Size = UDim2.fromOffset(0, 28),
-            LayoutOrder = order,
-            Text = tab.Title,
-            TextColor3 = self.Library.Theme.SubText,
-        })
-        applyTextStyle(tab.TrailButton, 18, "medium")
-        tab.TrailButton.MouseButton1Click:Connect(function()
-            self:SetTab(tab)
-        end)
-        order = order + 1
+    for _, tab in ipairs(self.Tabs) do
+        parts[#parts + 1] = string.format('<font color="%s">/</font>', accentStrong)
+        local active = tab == self.ActiveTab
+        local tabColor = active and text or subText
+        local stroke = active and '<stroke color="#FFFFFF" transparency="0.84">' or ""
+        local strokeEnd = active and "</stroke>" or ""
+        parts[#parts + 1] = string.format('<font color="%s">%s%s%s</font>', tabColor, stroke, tostring(tab.Title), strokeEnd)
     end
 
-    if self.ActiveTab then
-        for _, tab in ipairs(self.Tabs) do
-            tab:UpdateVisual(tab == self.ActiveTab)
-        end
-    end
+    self.TrailLabel.Text = table.concat(parts, "  ")
 end
 
 function Window:AddTab(title, options)
@@ -1354,6 +1357,7 @@ function Window:SetTab(tabOrName)
         tab.Page.Visible = active
         tab:UpdateVisual(active)
     end
+    self:_rebuildTrail()
 end
 
 function Tab:Build()
@@ -1446,10 +1450,6 @@ end
 
 function Tab:UpdateVisual(active)
     local theme = self.Library.Theme
-    if self.TrailButton then
-        self.TrailButton.TextColor3 = active and theme.Text or theme.SubText
-        applyActiveText(self.TrailButton, active)
-    end
     setIconVisualColor(self.SidebarIcon, active and theme.AccentStrong or theme.MutedText)
 end
 local function makeContainerFrame(library, parent, title)
@@ -1494,7 +1494,7 @@ local function makeContainerFrame(library, parent, title)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 19, "medium")
+    applyTextStyle(label, 20, "medium")
     bindTheme(library, label, "TextColor3", "Text")
 
     local content = create("Frame", {
@@ -1729,7 +1729,7 @@ local function addSimpleLabel(container, textOrConfig, doesWrap, idx)
         TextYAlignment = Enum.TextYAlignment.Top,
         TextTruncate = config.DoesWrap and Enum.TextTruncate.None or Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(label, config.Size or 17, config.Weight or "regular")
+    applyTextStyle(label, config.Size or 18, config.Weight or "regular")
     bindTheme(container.Library, label, "TextColor3", config.ColorToken or "SubText")
     local wrapper = {
         Library = container.Library,
@@ -1813,7 +1813,7 @@ local function addDivider(container, text)
             Text = text,
             TextColor3 = container.Library.Theme.MutedText,
         })
-        applyTextStyle(label, 13, "medium")
+        applyTextStyle(label, 14, "medium")
         bindTheme(container.Library, label, "BackgroundColor3", "Surface")
         bindTheme(container.Library, label, "TextColor3", "MutedText")
     end
@@ -1836,7 +1836,7 @@ local function addButton(container, textOrConfig, maybeConfig)
         TextColor3 = config.Risky and Color3.fromRGB(255, 155, 155) or container.Library.Theme.Text,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(button, 17, "medium")
+    applyTextStyle(button, 18, "medium")
     makeCorner(button, 9)
     local stroke = makeStroke(button, 1)
     stroke.Color = container.Library.Theme.Border
@@ -1947,7 +1947,7 @@ local function addToggle(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "regular")
+    applyTextStyle(label, 18, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -1999,8 +1999,8 @@ local function addToggle(container, flagOrConfig, maybeConfig)
             textColor = theme.MutedText
         end
         self.Label.TextColor3 = textColor
-        self.Button.BackgroundColor3 = self.Disabled and theme.Surface or (self.Value and theme.BorderStrong or theme.Input)
-        self.Knob.BackgroundColor3 = self.Disabled and theme.MutedText or (self.Value and theme.AccentStrong or theme.AccentMuted)
+        self.Button.BackgroundColor3 = self.Disabled and theme.Surface or (self.Value and (theme.ToggleOn or theme.BorderStrong) or theme.Input)
+        self.Knob.BackgroundColor3 = self.Disabled and theme.MutedText or (self.Value and (theme.ToggleKnobOn or theme.Accent) or theme.AccentMuted)
         applyActiveText(self.Label, self.Value and not self.Disabled)
     end
     function option:SetValue(value, silent)
@@ -2039,7 +2039,7 @@ addCheckbox = function(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "regular")
+    applyTextStyle(label, 18, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2133,7 +2133,7 @@ local function addInput(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "regular")
+    applyTextStyle(label, 18, "regular")
     local box = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
@@ -2147,7 +2147,7 @@ local function addInput(container, flagOrConfig, maybeConfig)
         ClearTextOnFocus = config.ClearTextOnFocus == true,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(box, 16, "medium")
+    applyTextStyle(box, 17, "medium")
     makeCorner(box, 8)
     makePadding(box, 12, 12, 0, 0)
 
@@ -2253,7 +2253,7 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "medium")
+    applyTextStyle(label, 19, "medium")
     local valueBox = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
@@ -2267,7 +2267,7 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         ClearTextOnFocus = false,
         TextXAlignment = Enum.TextXAlignment.Center,
     })
-    applyTextStyle(valueBox, 16, "regular")
+    applyTextStyle(valueBox, 17, "regular")
     makeCorner(valueBox, 6)
     local bar = create("TextButton", {
         Parent = frame,
@@ -2387,9 +2387,12 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         option:SetValue(option.Min + (option.Max - option.Min) * clamp(relative, 0, 1))
     end
 
-    bar.MouseButton1Down:Connect(function(x, y)
+    bar.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+            return
+        end
         dragging = true
-        updateFromInput({ Position = Vector2.new(x, y) })
+        updateFromInput(input)
     end)
     valueBox.Focused:Connect(function()
         option._editingValue = true
@@ -2408,12 +2411,12 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         option:UpdateTheme()
     end)
     container.Library:_track(UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             updateFromInput(input)
         end
     end))
     container.Library:_track(UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end))
@@ -2451,7 +2454,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "medium")
+    applyTextStyle(label, 18, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2471,7 +2474,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(selected, 16, "regular")
+    applyTextStyle(selected, 17, "regular")
     local listHolder = create("Frame", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Surface,
@@ -2496,7 +2499,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         ClearTextOnFocus = false,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(searchBox, 15, "regular")
+    applyTextStyle(searchBox, 16, "regular")
     makeCorner(searchBox, 7)
     makePadding(searchBox, 8, 8, 0, 0)
     local list = create("ScrollingFrame", {
@@ -2635,7 +2638,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
                 TextColor3 = disabledValue and self.Library.Theme.MutedText or (active and self.Library.Theme.Text or self.Library.Theme.SubText),
                 TextTruncate = Enum.TextTruncate.AtEnd,
             })
-            applyTextStyle(entry, 16, active and "medium" or "regular")
+            applyTextStyle(entry, 17, active and "medium" or "regular")
             makeCorner(entry, 7)
             applyActiveText(entry, active)
             entry.MouseEnter:Connect(function()
@@ -2811,7 +2814,7 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "medium")
+    applyTextStyle(label, 18, "medium")
 
     local modeButton = create("TextButton", {
         Parent = row,
@@ -2832,7 +2835,7 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(modeLabel, 14, "medium")
+    applyTextStyle(modeLabel, 15, "medium")
 
     local button = create("TextButton", {
         Parent = row,
@@ -2853,7 +2856,7 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(valueLabel, 16, "regular")
+    applyTextStyle(valueLabel, 17, "regular")
 
     local option = attachElementCommon(setmetatable({
         Library = container.Library,
@@ -3091,7 +3094,7 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 17, "medium")
+    applyTextStyle(label, 18, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -3122,7 +3125,7 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(hexLabel, 15, "regular")
+    applyTextStyle(hexLabel, 16, "regular")
     local editor = create("Frame", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Surface,
@@ -3216,17 +3219,20 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
             local relative = (input.Position.X - bar.AbsolutePosition.X) / math.max(bar.AbsoluteSize.X, 1)
             setChannel(name, math.floor(clamp(relative, 0, 1) * 255 + 0.5))
         end
-        bar.MouseButton1Down:Connect(function(x, y)
+        bar.InputBegan:Connect(function(input)
+            if input.UserInputType ~= Enum.UserInputType.MouseButton1 and input.UserInputType ~= Enum.UserInputType.Touch then
+                return
+            end
             dragging = true
-            updateFromInput({ Position = Vector2.new(x, y) })
+            updateFromInput(input)
         end)
         container.Library:_track(UserInputService.InputChanged:Connect(function(input)
-            if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                 updateFromInput(input)
             end
         end))
         container.Library:_track(UserInputService.InputEnded:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                 dragging = false
             end
         end))
