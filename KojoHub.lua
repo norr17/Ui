@@ -651,7 +651,7 @@ function Library.new()
     self._unloadCallbacks = {}
     self.Unloaded = false
     self.NotifySide = "Right"
-    self.DPIScale = 100
+    self.DPIScale = 110
     self.ForceCheckbox = false
     self.ShowToggleFrameInKeybinds = true
 
@@ -1074,7 +1074,7 @@ function Window:Build()
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(self.TrailLabel, 20, "medium")
+    applyTextStyle(self.TrailLabel, 21, "medium")
     bindTheme(library, self.TrailLabel, "TextColor3", "Text")
 
     self.Body = create("Frame", {
@@ -1402,35 +1402,35 @@ function Tab:Build()
         local width = self.Canvas.AbsoluteSize.X
         local half = math.floor((width - 10) / 2)
 
-        for _, item in ipairs(self.LeftItems) do
-            if item.FlexSpacer then
-                item.FlexSpacer.Size = UDim2.new(1, 0, 0, 0)
-            end
-        end
-
-        for _, item in ipairs(self.RightItems) do
-            if item.FlexSpacer then
-                item.FlexSpacer.Size = UDim2.new(1, 0, 0, 0)
-            end
-        end
-
         self.LeftColumn.Size = UDim2.fromOffset(half, self.LeftLayout.AbsoluteContentSize.Y)
         self.RightColumn.Position = UDim2.fromOffset(half + 10, 0)
         self.RightColumn.Size = UDim2.fromOffset(half, self.RightLayout.AbsoluteContentSize.Y)
+
+        local function applyHeight(item, height)
+            if item and item.Frame then
+                item.Frame.Size = UDim2.new(1, 0, 0, math.max(48, math.floor(height + 0.5)))
+            end
+        end
+
+        local function getNaturalHeight(item)
+            if not item or not item.GetNaturalHeight then
+                return item and item.Frame and item.Frame.AbsoluteSize.Y or 48
+            end
+            return item:GetNaturalHeight()
+        end
 
         local pairCount = math.max(#self.LeftItems, #self.RightItems)
         for index = 1, pairCount do
             local leftItem = self.LeftItems[index]
             local rightItem = self.RightItems[index]
 
-            if leftItem and rightItem and leftItem.Frame and rightItem.Frame then
-                local targetHeight = math.max(leftItem.Frame.AbsoluteSize.Y, rightItem.Frame.AbsoluteSize.Y)
-                if leftItem.FlexSpacer then
-                    leftItem.FlexSpacer.Size = UDim2.new(1, 0, 0, math.max(0, targetHeight - leftItem.Frame.AbsoluteSize.Y))
-                end
-                if rightItem.FlexSpacer then
-                    rightItem.FlexSpacer.Size = UDim2.new(1, 0, 0, math.max(0, targetHeight - rightItem.Frame.AbsoluteSize.Y))
-                end
+            if leftItem and rightItem then
+                local targetHeight = math.max(getNaturalHeight(leftItem), getNaturalHeight(rightItem))
+                applyHeight(leftItem, targetHeight)
+                applyHeight(rightItem, targetHeight)
+            else
+                applyHeight(leftItem, getNaturalHeight(leftItem))
+                applyHeight(rightItem, getNaturalHeight(rightItem))
             end
         end
 
@@ -1455,8 +1455,7 @@ end
 local function makeContainerFrame(library, parent, title)
     local frame = create("Frame", {
         Parent = parent,
-        AutomaticSize = Enum.AutomaticSize.Y,
-        Size = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 52),
         BackgroundColor3 = library.Theme.Surface,
         BorderSizePixel = 0,
     })
@@ -1505,17 +1504,11 @@ local function makeContainerFrame(library, parent, title)
         Size = UDim2.new(1, 0, 0, 0),
     })
     local layout = create("UIListLayout", { Parent = content, Padding = UDim.new(0, 11) })
-    local spacer = create("Frame", {
-        Parent = content,
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 0),
-        LayoutOrder = 10000,
-    })
-    return frame, content, layout, spacer
+    return frame, content, layout
 end
 
 function Tab:_makeContainer(kind, parent, title)
-    local frame, content, layout, spacer = makeContainerFrame(self.Library, parent, title)
+    local frame, content, layout = makeContainerFrame(self.Library, parent, title)
     local object = {
         Library = self.Library,
         Window = self.Window,
@@ -1523,7 +1516,6 @@ function Tab:_makeContainer(kind, parent, title)
         Frame = frame,
         ContentFrame = content,
         Layout = layout,
-        FlexSpacer = spacer,
     }
     local mt = kind == "tabbox" and Tabbox or Groupbox
     object = setmetatable(object, mt)
@@ -1532,6 +1524,21 @@ function Tab:_makeContainer(kind, parent, title)
             self._sync()
         end
     end
+    function object:GetNaturalHeight()
+        local bottomPadding = 14
+        return math.max(52, self.ContentFrame.Position.Y.Offset + self.ContentFrame.AbsoluteSize.Y + bottomPadding)
+    end
+
+    self.Library:_track(layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if self._sync then
+            self._sync()
+        end
+    end))
+    self.Library:_track(content:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+        if self._sync then
+            self._sync()
+        end
+    end))
 
     if parent == self.LeftColumn then
         self.LeftItems[#self.LeftItems + 1] = object
@@ -1661,6 +1668,9 @@ local function attachElementCommon(option)
         end
         if info.SyncTarget == nil then
             info.SyncTarget = self
+        end
+        if info.SyncToggleState == nil and (self.Type == "toggle" or self.Type == "checkbox") then
+            info.SyncToggleState = true
         end
         return self.ParentContainer:AddKeybind(index, info)
     end
@@ -2979,6 +2989,18 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         end
     end
 
+    function option:CycleMode()
+        if #self.Modes == 0 then
+            return
+        end
+        local currentIndex = table.find(self.Modes, self.Mode) or 1
+        local nextIndex = currentIndex + 1
+        if nextIndex > #self.Modes then
+            nextIndex = 1
+        end
+        self:SetMode(self.Modes[nextIndex])
+    end
+
     button.MouseButton1Click:Connect(function()
         if option.Disabled then
             return
@@ -2986,16 +3008,27 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         option.Capturing = true
         option.ValueLabel.Text = "..."
     end)
+    button.InputBegan:Connect(function(input)
+        if option.Disabled then
+            return
+        end
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            option:CycleMode()
+        end
+    end)
     modeButton.MouseButton1Click:Connect(function()
         if option.Disabled or #option.Modes == 0 then
             return
         end
-        local currentIndex = table.find(option.Modes, option.Mode) or 1
-        local nextIndex = currentIndex + 1
-        if nextIndex > #option.Modes then
-            nextIndex = 1
+        option:CycleMode()
+    end)
+    modeButton.InputBegan:Connect(function(input)
+        if option.Disabled then
+            return
         end
-        option:SetMode(option.Modes[nextIndex])
+        if input.UserInputType == Enum.UserInputType.MouseButton2 then
+            option:CycleMode()
+        end
     end)
     container.Library:_track(UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then
