@@ -651,7 +651,7 @@ function Library.new()
     self._unloadCallbacks = {}
     self.Unloaded = false
     self.NotifySide = "Right"
-    self.DPIScale = 125
+    self.DPIScale = 110
     self.ForceCheckbox = false
     self.ShowToggleFrameInKeybinds = true
 
@@ -924,7 +924,7 @@ function Library:CreateWindow(options)
         Title = (options and (options.Title or options.Name)) or "Kojo Hub",
         Footer = (options and options.Footer) or "",
         Icon = options and (options.Icon or options.Logo),
-        Size = (options and options.Size) or UDim2.fromOffset(900, 690),
+        Size = (options and options.Size) or UDim2.fromOffset(860, 640),
         ToggleKey = (options and (options.ToggleKey or options.ToggleKeybind)) or Enum.KeyCode.RightShift,
         SidebarWidth = (options and options.SidebarWidth) or 72,
         NotifySide = (options and options.NotifySide) or self.NotifySide or "Right",
@@ -1074,7 +1074,7 @@ function Window:Build()
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(self.TrailLabel, 22, "medium")
+    applyTextStyle(self.TrailLabel, 21, "medium")
     bindTheme(library, self.TrailLabel, "TextColor3", "Text")
 
     self.Body = create("Frame", {
@@ -1493,7 +1493,7 @@ local function makeContainerFrame(library, parent, title)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 20, "medium")
+    applyTextStyle(label, 22, "medium")
     bindTheme(library, label, "TextColor3", "Text")
 
     local content = create("Frame", {
@@ -1957,7 +1957,7 @@ local function addToggle(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "regular")
+    applyTextStyle(label, 19, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2049,7 +2049,7 @@ addCheckbox = function(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "regular")
+    applyTextStyle(label, 19, "regular")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2143,7 +2143,7 @@ local function addInput(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "regular")
+    applyTextStyle(label, 19, "regular")
     local box = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
@@ -2263,7 +2263,7 @@ local function addSlider(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 19, "medium")
+    applyTextStyle(label, 20, "medium")
     local valueBox = create("TextBox", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Input,
@@ -2464,7 +2464,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "medium")
+    applyTextStyle(label, 19, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -2484,7 +2484,7 @@ local function addDropdown(container, flagOrConfig, maybeConfig)
         TextColor3 = container.Library.Theme.SubText,
         TextTruncate = Enum.TextTruncate.AtEnd,
     })
-    applyTextStyle(selected, 17, "regular")
+    applyTextStyle(selected, 18, "regular")
     local listHolder = create("Frame", {
         Parent = frame,
         BackgroundColor3 = container.Library.Theme.Surface,
@@ -2824,7 +2824,7 @@ local function addKeybind(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "medium")
+    applyTextStyle(label, 19, "medium")
 
     local modeButton = create("TextButton", {
         Parent = row,
@@ -3127,7 +3127,7 @@ local function addColorPicker(container, flagOrConfig, maybeConfig)
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(label, 18, "medium")
+    applyTextStyle(label, 19, "medium")
     local button = create("TextButton", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
