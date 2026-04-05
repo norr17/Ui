@@ -651,7 +651,7 @@ function Library.new()
     self._unloadCallbacks = {}
     self.Unloaded = false
     self.NotifySide = "Right"
-    self.DPIScale = 110
+    self.DPIScale = 125
     self.ForceCheckbox = false
     self.ShowToggleFrameInKeybinds = true
 
@@ -1074,7 +1074,7 @@ function Window:Build()
         TextTruncate = Enum.TextTruncate.AtEnd,
         TextXAlignment = Enum.TextXAlignment.Left,
     })
-    applyTextStyle(self.TrailLabel, 21, "medium")
+    applyTextStyle(self.TrailLabel, 22, "medium")
     bindTheme(library, self.TrailLabel, "TextColor3", "Text")
 
     self.Body = create("Frame", {
