@@ -3871,12 +3871,12 @@ function Library:CreateFlyHack(opts)
         self._conn = RunService.Heartbeat:Connect(function()
             local speed = self._speed
             local moveDir = Vector3.new(0, 0, 0)
-            if uis:IsKeyDown(Enum.KeyCode.W) then moveDir += cam.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.S) then moveDir -= cam.CFrame.LookVector end
-            if uis:IsKeyDown(Enum.KeyCode.A) then moveDir -= cam.CFrame.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.D) then moveDir += cam.CFrame.RightVector end
-            if uis:IsKeyDown(Enum.KeyCode.Space) then moveDir += Vector3.new(0, 1, 0) end
-            if uis:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir -= Vector3.new(0, 1, 0) end
+            if uis:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + cam.CFrame.LookVector end
+            if uis:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - cam.CFrame.LookVector end
+            if uis:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - cam.CFrame.RightVector end
+            if uis:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + cam.CFrame.RightVector end
+            if uis:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+            if uis:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0, 1, 0) end
             if moveDir.Magnitude > 0 then
                 bv.Velocity = moveDir.Unit * speed
             else
@@ -4039,21 +4039,20 @@ function Library:CreateSilentAim(opts)
         local nearest, nearDist = nil, math.huge
         for _, player in pairs(Players:GetPlayers()) do
             if player ~= Players.LocalPlayer then
-                if self._teamCheck and player.Team == Players.LocalPlayer.Team then
-                    continue
-                end
-                local char = player.Character
-                if char then
-                    local part = char:FindFirstChild(self._target)
-                        or char:FindFirstChild("HumanoidRootPart")
-                    if part then
-                        local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
-                        if onScreen then
-                            local d = (Vector2.new(screenPos.X, screenPos.Y) - viewCenter).Magnitude
-                            local hum = char:FindFirstChildOfClass("Humanoid")
-                            if d < self._fov and d < nearDist and hum and hum.Health > 0 then
-                                nearest = part
-                                nearDist = d
+                if not (self._teamCheck and player.Team == Players.LocalPlayer.Team) then
+                    local char = player.Character
+                    if char then
+                        local part = char:FindFirstChild(self._target)
+                            or char:FindFirstChild("HumanoidRootPart")
+                        if part then
+                            local screenPos, onScreen = camera:WorldToViewportPoint(part.Position)
+                            if onScreen then
+                                local d = (Vector2.new(screenPos.X, screenPos.Y) - viewCenter).Magnitude
+                                local hum = char:FindFirstChildOfClass("Humanoid")
+                                if d < self._fov and d < nearDist and hum and hum.Health > 0 then
+                                    nearest = part
+                                    nearDist = d
+                                end
                             end
                         end
                     end
@@ -4238,14 +4237,14 @@ Library._buildProgressBar = function(parent, label, opts)
         Size = UDim2.new(1, 0, 0, barH),
         Parent = container,
     })
-    MakeRounded(track, barH // 2)
+    MakeRounded(track, math.floor(barH / 2))
 
     local fill = Create("Frame", {
         BackgroundColor3 = color,
         Size = UDim2.new((value - min) / math.max(1, max - min), 0, 1, 0),
         Parent = track,
     })
-    MakeRounded(fill, barH // 2)
+    MakeRounded(fill, math.floor(barH / 2))
 
     local function SetProgress(v)
         value = Clamp(v, min, max)
