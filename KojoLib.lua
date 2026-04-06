@@ -1568,12 +1568,12 @@ function Library:CreateWindow(options)
                     end,
                 })
                 toggleObj.Index = index
-                toggleObj:AddColorPicker = function(self, pickerIndex, pickerOpts)
+                toggleObj.AddColorPicker = function(self, pickerIndex, pickerOpts)
                     pickerOpts = pickerOpts or {}
                     pickerOpts.Index = pickerIndex
                     return sectionObj:AddColorPicker(pickerIndex, pickerOpts)
                 end
-                toggleObj:AddKeyPicker = function(self, pickerIndex, pickerOpts)
+                toggleObj.AddKeyPicker = function(self, pickerIndex, pickerOpts)
                     pickerOpts = pickerOpts or {}
                     pickerOpts.Index = pickerIndex
                     if pickerOpts.SyncToggleState == nil then
@@ -1910,12 +1910,12 @@ function Library:CreateWindow(options)
                     end,
                 })
                 labelObj.Index = index
-                labelObj:AddColorPicker = function(self, pickerIndex, pickerOpts)
+                labelObj.AddColorPicker = function(self, pickerIndex, pickerOpts)
                     pickerOpts = pickerOpts or {}
                     pickerOpts.Index = pickerIndex
                     return sectionObj:AddColorPicker(pickerIndex, pickerOpts)
                 end
-                labelObj:AddKeyPicker = function(self, pickerIndex, pickerOpts)
+                labelObj.AddKeyPicker = function(self, pickerIndex, pickerOpts)
                     pickerOpts = pickerOpts or {}
                     pickerOpts.Index = pickerIndex
                     return sectionObj:AddKeyPicker(pickerIndex, pickerOpts)
