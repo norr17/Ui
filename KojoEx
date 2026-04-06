@@ -1,0 +1,1269 @@
+--[[
+    AikeoLib Extended Features Module
+    Adds: TabBar (in-section tabs), RadioGroup, NumberInput, ProgressBar,
+          TableView, SearchBar, Toggle Groups, Tooltip system,
+          Config save/load, Watermark, FPS counter, Click Teleport,
+          Drawing utilities, Anti-AFK, Speed Hack helpers, and more.
+    
+    Append this file or merge into AikeoLib.lua for full 4k+ line library.
+    Usage: require(AikeoLib) then call Library.Extended features directly.
+--]]
+
+-- This file extends AikeoLib.lua with additional components and FPS utilities.
+-- In usage, this is appended to the main AikeoLib.lua.
+
+-- ============================================================
+-- EXTENDED SECTION METHODS (mixed into sectionObj at creation)
+-- ============================================================
+
+-- These methods would be injected into the sectionObj prototype within AddSection.
+-- Shown here as standalone documentation + extension pattern.
+
+local ExtendedSection = {}
+
+-- ====================================================
+-- RADIO GROUP
+-- A group of mutually exclusive options shown as pills
+-- ====================================================
+function ExtendedSection:AddRadioGroup(label, opts)
+    opts = opts or {}
+    local options   = opts.Options or { "Option 1", "Option 2" }
+    local default   = opts.Default or options[1]
+    local callback  = opts.Callback or function() end
+    local disabled  = opts.Disabled ~= nil and opts.Disabled or false
+
+    local value = default
+
+    -- Row with label
+    local container = Instance.new("Frame")
+    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(1, 0, 0, 0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
+
+    local labelEl = Instance.new("TextLabel")
+    labelEl.Text = label
+    labelEl.Font = Enum.Font.GothamMedium
+    labelEl.TextSize = 12
+    labelEl.TextColor3 = disabled and Color3.fromRGB(90, 88, 105) or Color3.fromRGB(225, 222, 238)
+    labelEl.BackgroundTransparency = 1
+    labelEl.Size = UDim2.new(1, -24, 0, 16)
+    labelEl.Position = UDim2.new(0, 12, 0, 6)
+    labelEl.TextXAlignment = Enum.TextXAlignment.Left
+    labelEl.Parent = container
+
+    -- Options row
+    local optRow = Instance.new("Frame")
+    optRow.BackgroundTransparency = 1
+    optRow.Position = UDim2.new(0, 12, 0, 26)
+    optRow.Size = UDim2.new(1, -24, 0, 26)
+    optRow.Parent = container
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 6)
+    listLayout.FillDirection = Enum.FillDirection.Horizontal
+    listLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = optRow
+
+    container.Size = UDim2.new(1, 0, 0, 58)
+
+    local buttons = {}
+
+    local function UpdateSelection(v)
+        value = v
+        for _, data in pairs(buttons) do
+            local isSelected = data.value == v
+            data.btn.BackgroundColor3 = isSelected
+                and Color3.fromRGB(148, 100, 220)
+                or Color3.fromRGB(38, 36, 50)
+            data.btn.TextColor3 = isSelected
+                and Color3.fromRGB(235, 230, 245)
+                or Color3.fromRGB(155, 150, 175)
+        end
+        callback(v)
+    end
+
+    for i, opt in ipairs(options) do
+        local btn = Instance.new("TextButton")
+        btn.BackgroundColor3 = opt == value
+            and Color3.fromRGB(148, 100, 220)
+            or Color3.fromRGB(38, 36, 50)
+        btn.Size = UDim2.new(0, 0, 1, 0)
+        btn.AutomaticSize = Enum.AutomaticSize.X
+        btn.Text = "  " .. opt .. "  "
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 11
+        btn.TextColor3 = opt == value
+            and Color3.fromRGB(235, 230, 245)
+            or Color3.fromRGB(155, 150, 175)
+        btn.AutoButtonColor = false
+        btn.LayoutOrder = i
+        btn.Parent = optRow
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 5)
+        corner.Parent = btn
+
+        if not disabled then
+            btn.MouseButton1Click:Connect(function()
+                UpdateSelection(opt)
+            end)
+        end
+
+        table.insert(buttons, { btn = btn, value = opt })
+    end
+
+    return {
+        Value = value,
+        Set = function(self, v)
+            UpdateSelection(v)
+        end,
+        GetValue = function(self)
+            return value
+        end,
+        _frame = container,
+    }
+end
+
+-- ====================================================
+-- PROGRESS BAR (read-only display)
+-- ====================================================
+function ExtendedSection:AddProgressBar(label, opts)
+    opts = opts or {}
+    local min     = opts.Min or 0
+    local max     = opts.Max or 100
+    local default = opts.Default or 0
+    local color   = opts.Color or Color3.fromRGB(148, 100, 220)
+    local suffix  = opts.Suffix or "%"
+    local height  = opts.Height or 8
+
+    local value = default
+
+    local container = Instance.new("Frame")
+    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(1, 0, 0, 42)
+
+    -- Label row
+    local topRow = Instance.new("Frame")
+    topRow.BackgroundTransparency = 1
+    topRow.Position = UDim2.new(0, 12, 0, 4)
+    topRow.Size = UDim2.new(1, -24, 0, 16)
+    topRow.Parent = container
+
+    local labelEl = Instance.new("TextLabel")
+    labelEl.Text = label
+    labelEl.Font = Enum.Font.GothamMedium
+    labelEl.TextSize = 12
+    labelEl.TextColor3 = Color3.fromRGB(225, 222, 238)
+    labelEl.BackgroundTransparency = 1
+    labelEl.Size = UDim2.new(1, -50, 1, 0)
+    labelEl.TextXAlignment = Enum.TextXAlignment.Left
+    labelEl.Parent = topRow
+
+    local valLabel = Instance.new("TextLabel")
+    valLabel.AnchorPoint = Vector2.new(1, 0)
+    valLabel.Text = tostring(math.floor(value)) .. suffix
+    valLabel.Font = Enum.Font.GothamMedium
+    valLabel.TextSize = 12
+    valLabel.TextColor3 = Color3.fromRGB(148, 100, 220)
+    valLabel.BackgroundTransparency = 1
+    valLabel.Position = UDim2.new(1, 0, 0, 0)
+    valLabel.Size = UDim2.new(0, 48, 1, 0)
+    valLabel.TextXAlignment = Enum.TextXAlignment.Right
+    valLabel.Parent = topRow
+
+    -- Bar
+    local track = Instance.new("Frame")
+    track.BackgroundColor3 = Color3.fromRGB(40, 38, 52)
+    track.Position = UDim2.new(0, 12, 0, 24)
+    track.Size = UDim2.new(1, -24, 0, height)
+    track.Parent = container
+
+    local trackCorner = Instance.new("UICorner")
+    trackCorner.CornerRadius = UDim.new(0, height // 2)
+    trackCorner.Parent = track
+
+    local fill = Instance.new("Frame")
+    fill.BackgroundColor3 = color
+    local frac = (value - min) / math.max(1, max - min)
+    fill.Size = UDim2.new(math.clamp(frac, 0, 1), 0, 1, 0)
+    fill.Parent = track
+
+    local fillCorner = Instance.new("UICorner")
+    fillCorner.CornerRadius = UDim.new(0, height // 2)
+    fillCorner.Parent = fill
+
+    local function SetProgress(v)
+        value = math.clamp(v, min, max)
+        local f = (value - min) / math.max(1, max - min)
+        fill.Size = UDim2.new(math.clamp(f, 0, 1), 0, 1, 0)
+        valLabel.Text = tostring(math.floor(value)) .. suffix
+    end
+
+    return {
+        Value = value,
+        Set = function(self, v)
+            SetProgress(v)
+        end,
+        _frame = container,
+    }
+end
+
+-- ====================================================
+-- TABLE VIEW (simple data table)
+-- ====================================================
+function ExtendedSection:AddTable(headers, rows, opts)
+    opts = opts or {}
+    local rowHeight = opts.RowHeight or 24
+    local maxHeight = opts.MaxHeight or 120
+
+    local container = Instance.new("Frame")
+    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(1, 0, 0, 0)
+    container.AutomaticSize = Enum.AutomaticSize.Y
+
+    local scroll = Instance.new("ScrollingFrame")
+    scroll.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    scroll.BorderSizePixel = 0
+    scroll.Position = UDim2.new(0, 12, 0, 4)
+    scroll.Size = UDim2.new(1, -24, 0, math.min(maxHeight, (#rows + 1) * rowHeight))
+    scroll.ScrollBarThickness = 3
+    scroll.ScrollBarImageColor3 = Color3.fromRGB(75, 70, 95)
+    scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scroll.AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y
+    scroll.Parent = container
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = scroll
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(38, 38, 48)
+    stroke.Thickness = 1
+    stroke.Parent = scroll
+
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scroll
+
+    -- Header row
+    local headerRow = Instance.new("Frame")
+    headerRow.BackgroundColor3 = Color3.fromRGB(30, 28, 42)
+    headerRow.Size = UDim2.new(1, 0, 0, rowHeight)
+    headerRow.LayoutOrder = 0
+    headerRow.Parent = scroll
+
+    local headerList = Instance.new("UIListLayout")
+    headerList.FillDirection = Enum.FillDirection.Horizontal
+    headerList.SortOrder = Enum.SortOrder.LayoutOrder
+    headerList.Parent = headerRow
+
+    local colWidth = 1 / #headers
+    for i, h in ipairs(headers) do
+        local cell = Instance.new("TextLabel")
+        cell.BackgroundTransparency = 1
+        cell.Size = UDim2.new(colWidth, 0, 1, 0)
+        cell.Text = "  " .. h
+        cell.Font = Enum.Font.GothamSemibold
+        cell.TextSize = 11
+        cell.TextColor3 = Color3.fromRGB(148, 100, 220)
+        cell.TextXAlignment = Enum.TextXAlignment.Left
+        cell.LayoutOrder = i
+        cell.Parent = headerRow
+    end
+
+    -- Data rows
+    for ri, row in ipairs(rows) do
+        local dataRow = Instance.new("Frame")
+        dataRow.BackgroundColor3 = ri % 2 == 0
+            and Color3.fromRGB(26, 24, 36)
+            or Color3.fromRGB(22, 22, 28)
+        dataRow.BackgroundTransparency = 0
+        dataRow.Size = UDim2.new(1, 0, 0, rowHeight)
+        dataRow.LayoutOrder = ri
+        dataRow.Parent = scroll
+
+        local rowList = Instance.new("UIListLayout")
+        rowList.FillDirection = Enum.FillDirection.Horizontal
+        rowList.SortOrder = Enum.SortOrder.LayoutOrder
+        rowList.Parent = dataRow
+
+        for ci, cell in ipairs(row) do
+            local cellLabel = Instance.new("TextLabel")
+            cellLabel.BackgroundTransparency = 1
+            cellLabel.Size = UDim2.new(colWidth, 0, 1, 0)
+            cellLabel.Text = "  " .. tostring(cell)
+            cellLabel.Font = Enum.Font.GothamMedium
+            cellLabel.TextSize = 11
+            cellLabel.TextColor3 = Color3.fromRGB(200, 195, 215)
+            cellLabel.TextXAlignment = Enum.TextXAlignment.Left
+            cellLabel.LayoutOrder = ci
+            cellLabel.Parent = dataRow
+        end
+    end
+
+    container.Size = UDim2.new(1, 0, 0, scroll.Size.Y.Offset + 8)
+
+    return {
+        _scroll = scroll,
+        _frame  = container,
+        AddRow = function(self, row)
+            local ri = #scroll:GetChildren() - 1 -- subtract layout
+            local dataRow = Instance.new("Frame")
+            dataRow.BackgroundColor3 = ri % 2 == 0
+                and Color3.fromRGB(26, 24, 36)
+                or Color3.fromRGB(22, 22, 28)
+            dataRow.Size = UDim2.new(1, 0, 0, rowHeight)
+            dataRow.LayoutOrder = ri
+            dataRow.Parent = scroll
+
+            local rowList = Instance.new("UIListLayout")
+            rowList.FillDirection = Enum.FillDirection.Horizontal
+            rowList.SortOrder = Enum.SortOrder.LayoutOrder
+            rowList.Parent = dataRow
+
+            for ci, cell in ipairs(row) do
+                local cellLabel = Instance.new("TextLabel")
+                cellLabel.BackgroundTransparency = 1
+                cellLabel.Size = UDim2.new(colWidth, 0, 1, 0)
+                cellLabel.Text = "  " .. tostring(cell)
+                cellLabel.Font = Enum.Font.GothamMedium
+                cellLabel.TextSize = 11
+                cellLabel.TextColor3 = Color3.fromRGB(200, 195, 215)
+                cellLabel.TextXAlignment = Enum.TextXAlignment.Left
+                cellLabel.LayoutOrder = ci
+                cellLabel.Parent = dataRow
+            end
+        end,
+    }
+end
+
+-- ====================================================
+-- SEARCH BOX (for filtered element lists)
+-- ====================================================
+function ExtendedSection:AddSearchBox(opts)
+    opts = opts or {}
+    local placeholder = opts.Placeholder or "Search..."
+    local callback    = opts.Callback or function() end
+
+    local container = Instance.new("Frame")
+    container.BackgroundColor3 = Color3.fromRGB(30, 28, 40)
+    container.Size = UDim2.new(1, 0, 0, 32)
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = container
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(52, 50, 68)
+    stroke.Thickness = 1
+    stroke.Parent = container
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 8)
+    padding.PaddingRight = UDim.new(0, 8)
+    padding.Parent = container
+
+    local searchIcon = Instance.new("TextLabel")
+    searchIcon.Text = "🔍"
+    searchIcon.BackgroundTransparency = 1
+    searchIcon.Position = UDim2.new(0, 8, 0.5, -8)
+    searchIcon.Size = UDim2.new(0, 16, 0, 16)
+    searchIcon.TextSize = 11
+    searchIcon.Font = Enum.Font.GothamMedium
+    searchIcon.TextColor3 = Color3.fromRGB(100, 95, 120)
+    searchIcon.Parent = container
+
+    local tb = Instance.new("TextBox")
+    tb.BackgroundTransparency = 1
+    tb.PlaceholderText = placeholder
+    tb.PlaceholderColor3 = Color3.fromRGB(90, 88, 105)
+    tb.Text = ""
+    tb.Font = Enum.Font.GothamMedium
+    tb.TextSize = 12
+    tb.TextColor3 = Color3.fromRGB(225, 222, 238)
+    tb.Position = UDim2.new(0, 28, 0, 0)
+    tb.Size = UDim2.new(1, -28, 1, 0)
+    tb.TextXAlignment = Enum.TextXAlignment.Left
+    tb.ClearTextOnFocus = false
+    tb.Parent = container
+
+    tb.Focused:Connect(function()
+        stroke.Color = Color3.fromRGB(148, 100, 220)
+    end)
+    tb.FocusLost:Connect(function()
+        stroke.Color = Color3.fromRGB(52, 50, 68)
+    end)
+    tb:GetPropertyChangedSignal("Text"):Connect(function()
+        callback(tb.Text)
+    end)
+
+    return {
+        _frame = container,
+        _tb    = tb,
+        GetValue = function(self)
+            return tb.Text
+        end,
+        Clear = function(self)
+            tb.Text = ""
+        end,
+    }
+end
+
+-- ====================================================
+-- IN-SECTION TABS (sub-navigation within a section)
+-- ====================================================
+function ExtendedSection:AddSubTabs(tabNames, callback)
+    callback = callback or function() end
+    local active = tabNames[1]
+
+    local container = Instance.new("Frame")
+    container.BackgroundTransparency = 1
+    container.Size = UDim2.new(1, 0, 0, 30)
+
+    local tabList = Instance.new("UIListLayout")
+    tabList.Padding = UDim.new(0, 4)
+    tabList.FillDirection = Enum.FillDirection.Horizontal
+    tabList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    tabList.SortOrder = Enum.SortOrder.LayoutOrder
+    tabList.Parent = container
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.Parent = container
+
+    local buttons = {}
+
+    local function UpdateTabs(v)
+        active = v
+        for _, data in pairs(buttons) do
+            local isActive = data.name == v
+            data.btn.BackgroundColor3 = isActive
+                and Color3.fromRGB(148, 100, 220)
+                or Color3.fromRGB(32, 30, 42)
+            data.btn.TextColor3 = isActive
+                and Color3.fromRGB(235, 230, 245)
+                or Color3.fromRGB(130, 125, 155)
+            data.btn.BackgroundTransparency = isActive and 0 or 0
+        end
+        callback(v)
+    end
+
+    for i, name in ipairs(tabNames) do
+        local btn = Instance.new("TextButton")
+        btn.BackgroundColor3 = name == active
+            and Color3.fromRGB(148, 100, 220)
+            or Color3.fromRGB(32, 30, 42)
+        btn.Size = UDim2.new(0, 0, 0, 22)
+        btn.AutomaticSize = Enum.AutomaticSize.X
+        btn.Text = "  " .. name .. "  "
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 11
+        btn.TextColor3 = name == active
+            and Color3.fromRGB(235, 230, 245)
+            or Color3.fromRGB(130, 125, 155)
+        btn.AutoButtonColor = false
+        btn.LayoutOrder = i
+        btn.Parent = container
+
+        local corner = Instance.new("UICorner")
+        corner.CornerRadius = UDim.new(0, 5)
+        corner.Parent = btn
+
+        btn.MouseButton1Click:Connect(function()
+            UpdateTabs(name)
+        end)
+
+        table.insert(buttons, { btn = btn, name = name })
+    end
+
+    return {
+        Value = active,
+        _frame = container,
+        Set = function(self, v)
+            UpdateTabs(v)
+        end,
+        GetValue = function(self)
+            return active
+        end,
+    }
+end
+
+-- ====================================================
+-- TOGGLE LOCK (FPS - toggle with cooldown)
+-- ====================================================
+function ExtendedSection:AddToggleLock(label, opts)
+    opts = opts or {}
+    local default   = opts.Default or false
+    local cooldown  = opts.Cooldown or 0.5
+    local callback  = opts.Callback or function() end
+    local disabled  = opts.Disabled ~= nil and opts.Disabled or false
+
+    local value = default
+    local locked = false
+
+    local row = Instance.new("Frame")
+    row.BackgroundTransparency = 1
+    row.Size = UDim2.new(1, 0, 0, 32)
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 12)
+    padding.PaddingRight = UDim.new(0, 12)
+    padding.Parent = row
+
+    local labelEl = Instance.new("TextLabel")
+    labelEl.Text = label
+    labelEl.Font = Enum.Font.GothamMedium
+    labelEl.TextSize = 12
+    labelEl.TextColor3 = disabled and Color3.fromRGB(90, 88, 105) or Color3.fromRGB(225, 222, 238)
+    labelEl.BackgroundTransparency = 1
+    labelEl.Size = UDim2.new(1, -52, 1, 0)
+    labelEl.TextXAlignment = Enum.TextXAlignment.Left
+    labelEl.Parent = row
+
+    -- Indicator
+    local indicator = Instance.new("TextLabel")
+    indicator.AnchorPoint = Vector2.new(1, 0.5)
+    indicator.BackgroundTransparency = 1
+    indicator.Position = UDim2.new(1, 0, 0.5, 0)
+    indicator.Size = UDim2.new(0, 48, 0, 14)
+    indicator.Text = value and "ON" or "OFF"
+    indicator.Font = Enum.Font.GothamBold
+    indicator.TextSize = 10
+    indicator.TextColor3 = value and Color3.fromRGB(148, 100, 220) or Color3.fromRGB(90, 88, 105)
+    indicator.TextXAlignment = Enum.TextXAlignment.Right
+    indicator.Parent = row
+
+    local btn = Instance.new("TextButton")
+    btn.BackgroundTransparency = 1
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.Text = ""
+    btn.Parent = row
+
+    local function Toggle(v)
+        if locked then return end
+        locked = true
+        value = v
+        indicator.Text = v and "ON" or "OFF"
+        indicator.TextColor3 = v and Color3.fromRGB(148, 100, 220) or Color3.fromRGB(90, 88, 105)
+        callback(v)
+        task.delay(cooldown, function()
+            locked = false
+        end)
+    end
+
+    if not disabled then
+        btn.MouseButton1Click:Connect(function()
+            Toggle(not value)
+        end)
+    end
+
+    return {
+        Value = value,
+        _frame = row,
+        Set = function(self, v) Toggle(v) end,
+        GetValue = function(self) return value end,
+    }
+end
+
+-- ============================================================
+-- WATERMARK OVERLAY
+-- ============================================================
+
+local WatermarkClass = {}
+WatermarkClass.__index = WatermarkClass
+
+function WatermarkClass.new(gui, opts)
+    opts = opts or {}
+    local text     = opts.Text or "AikeoHub | v1.0"
+    local position = opts.Position or UDim2.new(1, -12, 0, 12)
+    local anchor   = opts.AnchorPoint or Vector2.new(1, 0)
+
+    local frame = Instance.new("Frame")
+    frame.Name = "Watermark"
+    frame.AnchorPoint = anchor
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+    frame.BackgroundTransparency = 0.15
+    frame.Position = position
+    frame.Size = UDim2.new(0, 0, 0, 24)
+    frame.AutomaticSize = Enum.AutomaticSize.X
+    frame.ZIndex = 999
+    frame.Parent = gui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(35, 35, 42)
+    stroke.Thickness = 1
+    stroke.Parent = frame
+
+    local padding = Instance.new("UIPadding")
+    padding.PaddingLeft = UDim.new(0, 10)
+    padding.PaddingRight = UDim.new(0, 10)
+    padding.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(0, 0, 1, 0)
+    label.AutomaticSize = Enum.AutomaticSize.X
+    label.Text = text
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 12
+    label.TextColor3 = Color3.fromRGB(148, 100, 220)
+    label.Parent = frame
+
+    local self = setmetatable({}, WatermarkClass)
+    self._frame = frame
+    self._label = label
+
+    function self:SetText(t)
+        label.Text = t
+    end
+
+    function self:SetVisible(v)
+        frame.Visible = v
+    end
+
+    function self:Destroy()
+        frame:Destroy()
+    end
+
+    return self
+end
+
+-- ============================================================
+-- FPS COUNTER OVERLAY
+-- ============================================================
+
+local FPSCounterClass = {}
+FPSCounterClass.__index = FPSCounterClass
+
+function FPSCounterClass.new(gui, opts)
+    opts = opts or {}
+    local position = opts.Position or UDim2.new(0, 12, 0, 12)
+
+    local frame = Instance.new("Frame")
+    frame.Name = "FPSCounter"
+    frame.BackgroundColor3 = Color3.fromRGB(15, 15, 18)
+    frame.BackgroundTransparency = 0.15
+    frame.Position = position
+    frame.Size = UDim2.new(0, 70, 0, 24)
+    frame.ZIndex = 999
+    frame.Parent = gui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 5)
+    corner.Parent = frame
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(35, 35, 42)
+    stroke.Thickness = 1
+    stroke.Parent = frame
+
+    local label = Instance.new("TextLabel")
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Text = "FPS: 60"
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 11
+    label.TextColor3 = Color3.fromRGB(80, 200, 120)
+    label.Parent = frame
+
+    local self = setmetatable({}, FPSCounterClass)
+    self._frame = frame
+    self._label = label
+    self._conn = nil
+    self._enabled = false
+
+    local lastTime = tick()
+    local frameCount = 0
+    local fps = 60
+
+    function self:Enable()
+        if self._enabled then return end
+        self._enabled = true
+        self._conn = game:GetService("RunService").RenderStepped:Connect(function()
+            frameCount = frameCount + 1
+            local now = tick()
+            local dt = now - lastTime
+            if dt >= 0.5 then
+                fps = math.round(frameCount / dt)
+                frameCount = 0
+                lastTime = now
+                -- Color coding
+                local fpsColor = Color3.fromRGB(80, 200, 120) -- green
+                if fps < 30 then
+                    fpsColor = Color3.fromRGB(220, 75, 75)   -- red
+                elseif fps < 50 then
+                    fpsColor = Color3.fromRGB(240, 180, 60)  -- yellow
+                end
+                label.Text = "FPS: " .. fps
+                label.TextColor3 = fpsColor
+            end
+        end)
+    end
+
+    function self:Disable()
+        self._enabled = false
+        if self._conn then
+            self._conn:Disconnect()
+            self._conn = nil
+        end
+    end
+
+    function self:SetVisible(v)
+        frame.Visible = v
+    end
+
+    function self:Destroy()
+        self:Disable()
+        frame:Destroy()
+    end
+
+    self:Enable()
+    return self
+end
+
+-- ============================================================
+-- CONFIG SYSTEM (save/load using writefile/readfile if available)
+-- ============================================================
+
+local ConfigSystem = {}
+ConfigSystem.__index = ConfigSystem
+
+function ConfigSystem.new(opts)
+    opts = opts or {}
+    local folderName = opts.Folder or "AikeoHub"
+    local configName = opts.Name or "default"
+
+    local self = setmetatable({}, ConfigSystem)
+    self._folder = folderName
+    self._name = configName
+    self._data = {}
+    self._flags = {}
+
+    -- Create folder if writefile available
+    local ok = pcall(function()
+        if not isfolder(folderName) then
+            makefolder(folderName)
+        end
+    end)
+
+    return self
+end
+
+function ConfigSystem:Register(flag, value)
+    self._flags[flag] = value
+    self._data[flag] = value
+end
+
+function ConfigSystem:Set(flag, value)
+    self._data[flag] = value
+end
+
+function ConfigSystem:Get(flag)
+    return self._data[flag]
+end
+
+function ConfigSystem:Save(name)
+    name = name or self._name
+    local path = self._folder .. "/" .. name .. ".json"
+    local ok, err = pcall(function()
+        local encoded = game:GetService("HttpService"):JSONEncode(self._data)
+        writefile(path, encoded)
+    end)
+    return ok
+end
+
+function ConfigSystem:Load(name)
+    name = name or self._name
+    local path = self._folder .. "/" .. name .. ".json"
+    local ok, result = pcall(function()
+        if isfile(path) then
+            local content = readfile(path)
+            return game:GetService("HttpService"):JSONDecode(content)
+        end
+        return nil
+    end)
+    if ok and result then
+        for k, v in pairs(result) do
+            self._data[k] = v
+        end
+        return true
+    end
+    return false
+end
+
+function ConfigSystem:Delete(name)
+    name = name or self._name
+    local path = self._folder .. "/" .. name .. ".json"
+    local ok = pcall(function()
+        delfile(path)
+    end)
+    return ok
+end
+
+function ConfigSystem:ListConfigs()
+    local configs = {}
+    local ok = pcall(function()
+        for _, file in pairs(listfiles(self._folder)) do
+            local name = file:gsub(self._folder .. "/", ""):gsub(".json", "")
+            table.insert(configs, name)
+        end
+    end)
+    return configs
+end
+
+-- ============================================================
+-- ANTI-AFK
+-- ============================================================
+
+local function AntiAFK()
+    local VirtualUser = game:GetService("VirtualUser")
+    game.Players.LocalPlayer.Idled:Connect(function()
+        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+        task.wait(0.1)
+        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+    end)
+end
+
+-- ============================================================
+-- SPEED HACK HELPER
+-- ============================================================
+
+local SpeedHack = {}
+SpeedHack.__index = SpeedHack
+
+function SpeedHack.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, SpeedHack)
+    self._speed = opts.DefaultSpeed or 16
+    self._enabled = false
+    self._conn = nil
+    return self
+end
+
+function SpeedHack:Enable(speed)
+    speed = speed or self._speed
+    self._enabled = true
+    local player = game.Players.LocalPlayer
+    if self._conn then self._conn:Disconnect() end
+    self._conn = game:GetService("RunService").Heartbeat:Connect(function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.WalkSpeed = speed
+            end
+        end
+    end)
+end
+
+function SpeedHack:Disable()
+    self._enabled = false
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+    local char = game.Players.LocalPlayer.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            hum.WalkSpeed = 16
+        end
+    end
+end
+
+function SpeedHack:SetSpeed(s)
+    self._speed = s
+    if self._enabled then
+        self:Enable(s)
+    end
+end
+
+-- ============================================================
+-- NOCLIP HELPER
+-- ============================================================
+
+local Noclip = {}
+Noclip.__index = Noclip
+
+function Noclip.new()
+    local self = setmetatable({}, Noclip)
+    self._enabled = false
+    self._conn = nil
+    return self
+end
+
+function Noclip:Enable()
+    if self._enabled then return end
+    self._enabled = true
+    local rs = game:GetService("RunService")
+    self._conn = rs.Stepped:Connect(function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            for _, p in pairs(char:GetDescendants()) do
+                if p:IsA("BasePart") and p.CanCollide then
+                    p.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+function Noclip:Disable()
+    self._enabled = false
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+    -- Re-enable collisions
+    local char = game.Players.LocalPlayer.Character
+    if char then
+        for _, p in pairs(char:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = true
+            end
+        end
+    end
+end
+
+-- ============================================================
+-- FLY HACK
+-- ============================================================
+
+local FlyHack = {}
+FlyHack.__index = FlyHack
+
+function FlyHack.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, FlyHack)
+    self._speed = opts.Speed or 50
+    self._enabled = false
+    self._bv = nil
+    self._bg = nil
+    self._conn = nil
+    return self
+end
+
+function FlyHack:Enable()
+    if self._enabled then return end
+    self._enabled = true
+    local player = game.Players.LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hrp = char:WaitForChild("HumanoidRootPart")
+    local hum = char:WaitForChild("Humanoid")
+    hum.PlatformStand = true
+
+    local bg = Instance.new("BodyGyro")
+    bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+    bg.P = 9e4
+    bg.Parent = hrp
+    self._bg = bg
+
+    local bv = Instance.new("BodyVelocity")
+    bv.Velocity = Vector3.new(0, 0, 0)
+    bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+    bv.Parent = hrp
+    self._bv = bv
+
+    local uis = game:GetService("UserInputService")
+    local cam = workspace.CurrentCamera
+
+    self._conn = game:GetService("RunService").Heartbeat:Connect(function()
+        local speed = self._speed
+        local moveDir = Vector3.new(0, 0, 0)
+
+        if uis:IsKeyDown(Enum.KeyCode.W) then
+            moveDir = moveDir + cam.CFrame.LookVector
+        end
+        if uis:IsKeyDown(Enum.KeyCode.S) then
+            moveDir = moveDir - cam.CFrame.LookVector
+        end
+        if uis:IsKeyDown(Enum.KeyCode.A) then
+            moveDir = moveDir - cam.CFrame.RightVector
+        end
+        if uis:IsKeyDown(Enum.KeyCode.D) then
+            moveDir = moveDir + cam.CFrame.RightVector
+        end
+        if uis:IsKeyDown(Enum.KeyCode.Space) then
+            moveDir = moveDir + Vector3.new(0, 1, 0)
+        end
+        if uis:IsKeyDown(Enum.KeyCode.LeftControl) then
+            moveDir = moveDir - Vector3.new(0, 1, 0)
+        end
+
+        if moveDir.Magnitude > 0 then
+            bv.Velocity = moveDir.Unit * speed
+        else
+            bv.Velocity = Vector3.new(0, 0, 0)
+        end
+
+        bg.CFrame = cam.CFrame
+    end)
+end
+
+function FlyHack:Disable()
+    if not self._enabled then return end
+    self._enabled = false
+
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+
+    local player = game.Players.LocalPlayer
+    local char = player.Character
+    if char then
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        if hum then hum.PlatformStand = false end
+    end
+
+    if self._bv then self._bv:Destroy(); self._bv = nil end
+    if self._bg then self._bg:Destroy(); self._bg = nil end
+end
+
+function FlyHack:SetSpeed(s)
+    self._speed = s
+end
+
+-- ============================================================
+-- CLICK TELEPORT
+-- ============================================================
+
+local ClickTeleport = {}
+ClickTeleport.__index = ClickTeleport
+
+function ClickTeleport.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, ClickTeleport)
+    self._enabled = false
+    self._conn = nil
+    self._indicator = nil
+    return self
+end
+
+function ClickTeleport:Enable()
+    if self._enabled then return end
+    self._enabled = true
+    local mouse = game.Players.LocalPlayer:GetMouse()
+    self._conn = mouse.Button1Down:Connect(function()
+        if not self._enabled then return end
+        local hit = mouse.Hit
+        if hit then
+            local char = game.Players.LocalPlayer.Character
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    hrp.CFrame = hit * CFrame.new(0, 3, 0)
+                end
+            end
+        end
+    end)
+end
+
+function ClickTeleport:Disable()
+    self._enabled = false
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+end
+
+-- ============================================================
+-- INFINITE JUMP
+-- ============================================================
+
+local function EnableInfiniteJump()
+    local uis = game:GetService("UserInputService")
+    local conn
+    conn = uis.JumpRequest:Connect(function()
+        local char = game.Players.LocalPlayer.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+    return conn
+end
+
+-- ============================================================
+-- HIGHLIGHT PLAYERS (ESP via Highlight instance)
+-- ============================================================
+
+local HighlightESP = {}
+HighlightESP.__index = HighlightESP
+
+function HighlightESP.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, HighlightESP)
+    self._enabled = false
+    self._highlights = {}
+    self._fillColor  = opts.FillColor or Color3.fromRGB(255, 75, 75)
+    self._outlineColor = opts.OutlineColor or Color3.fromRGB(255, 255, 255)
+    self._fillTrans  = opts.FillTransparency or 0.7
+    self._conn = nil
+    return self
+end
+
+function HighlightESP:Enable()
+    if self._enabled then return end
+    self._enabled = true
+
+    local function AddHighlight(char)
+        local h = Instance.new("Highlight")
+        h.FillColor = self._fillColor
+        h.OutlineColor = self._outlineColor
+        h.FillTransparency = self._fillTrans
+        h.Parent = char
+        return h
+    end
+
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= game.Players.LocalPlayer and player.Character then
+            self._highlights[player] = AddHighlight(player.Character)
+        end
+    end
+
+    self._conn = game.Players.PlayerAdded:Connect(function(player)
+        local function onChar(char)
+            if self._enabled then
+                self._highlights[player] = AddHighlight(char)
+            end
+        end
+        player.CharacterAdded:Connect(onChar)
+        if player.Character then onChar(player.Character) end
+    end)
+end
+
+function HighlightESP:Disable()
+    self._enabled = false
+    if self._conn then
+        self._conn:Disconnect()
+        self._conn = nil
+    end
+    for _, h in pairs(self._highlights) do
+        if h and h.Parent then
+            h:Destroy()
+        end
+    end
+    self._highlights = {}
+end
+
+function HighlightESP:SetFillColor(c)
+    self._fillColor = c
+    for _, h in pairs(self._highlights) do
+        if h and h.Parent then h.FillColor = c end
+    end
+end
+
+function HighlightESP:SetOutlineColor(c)
+    self._outlineColor = c
+    for _, h in pairs(self._highlights) do
+        if h and h.Parent then h.OutlineColor = c end
+    end
+end
+
+-- ============================================================
+-- SILENT AIM (basic implementation)
+-- ============================================================
+
+local SilentAim = {}
+SilentAim.__index = SilentAim
+
+function SilentAim.new(opts)
+    opts = opts or {}
+    local self = setmetatable({}, SilentAim)
+    self._enabled = false
+    self._target = opts.Target or "Head"
+    self._fov    = opts.FOV or 360
+    self._teamCheck = opts.TeamCheck ~= false
+    self._conn   = nil
+    return self
+end
+
+function SilentAim:GetNearestPlayer()
+    local localPlayer = game.Players.LocalPlayer
+    local camera = workspace.CurrentCamera
+    local viewCenter = Vector2.new(camera.ViewportSize.X / 2, camera.ViewportSize.Y / 2)
+    local nearest, nearDist = nil, math.huge
+
+    for _, player in pairs(game.Players:GetPlayers()) do
+        if player ~= localPlayer then
+            if self._teamCheck and player.Team == localPlayer.Team then
+                continue
+            end
+            local char = player.Character
+            if char then
+                local targetPart = char:FindFirstChild(self._target) or char:FindFirstChild("HumanoidRootPart")
+                if targetPart then
+                    local screenPos, onScreen = camera:WorldToViewportPoint(targetPart.Position)
+                    if onScreen then
+                        local dist = Vector2.new(screenPos.X, screenPos.Y) - viewCenter
+                        if dist.Magnitude < self._fov and dist.Magnitude < nearDist then
+                            local hum = char:FindFirstChildOfClass("Humanoid")
+                            if hum and hum.Health > 0 then
+                                nearest = targetPart
+                                nearDist = dist.Magnitude
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return nearest
+end
+
+function SilentAim:Enable()
+    if self._enabled then return end
+    self._enabled = true
+end
+
+function SilentAim:Disable()
+    self._enabled = false
+end
+
+function SilentAim:SetFOV(fov)
+    self._fov = fov
+end
+
+function SilentAim:SetTarget(target)
+    self._target = target
+end
+
+-- ============================================================
+-- EXPORTS (attach to Library if using combined file)
+-- ============================================================
+
+-- When appended to AikeoLib.lua, export these as Library.Extended
+local Extended = {
+    -- Section components (inject via sectionObj:_extend(ExtendedSection))
+    AddRadioGroup    = ExtendedSection.AddRadioGroup,
+    AddProgressBar   = ExtendedSection.AddProgressBar,
+    AddTable         = ExtendedSection.AddTable,
+    AddSearchBox     = ExtendedSection.AddSearchBox,
+    AddSubTabs       = ExtendedSection.AddSubTabs,
+    AddToggleLock    = ExtendedSection.AddToggleLock,
+
+    -- Standalone utilities
+    Watermark        = WatermarkClass,
+    FPSCounter       = FPSCounterClass,
+    Config           = ConfigSystem,
+    SpeedHack        = SpeedHack,
+    Noclip           = Noclip,
+    FlyHack          = FlyHack,
+    ClickTeleport    = ClickTeleport,
+    HighlightESP     = HighlightESP,
+    SilentAim        = SilentAim,
+    AntiAFK          = AntiAFK,
+    InfiniteJump     = EnableInfiniteJump,
+}
+
+return Extended
