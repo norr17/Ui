@@ -33,6 +33,14 @@ Library._sectionExtensions = {}
 Library._extendedModules = {}
 Library.Extended = {}
 Library._toggleKey = Enum.KeyCode.RightShift
+Library.Options = {}
+Library.Toggles = {}
+Library.Flags = {}
+Library.ForceCheckbox = false
+Library.ShowToggleFrameInKeybinds = true
+Library.ShowCustomCursor = false
+Library.Unloaded = false
+Library._unloadCallbacks = {}
 
 local RunService     = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -442,6 +450,35 @@ local function DecodeConfigValue(value)
         decoded[k] = DecodeConfigValue(v)
     end
     return decoded
+end
+
+local function NormalizeDisplayAndIndex(primary, opts, fallbackText)
+    opts = opts or {}
+    local index = opts.Index or opts.Flag or primary
+    local text = opts.Text or fallbackText or primary
+    return tostring(index), tostring(text), opts
+end
+
+local function EnsureObservable(control)
+    control._changedCallbacks = control._changedCallbacks or {}
+    if not control.OnChanged then
+        control.OnChanged = function(self, fn)
+            if type(fn) == "function" then
+                table.insert(self._changedCallbacks, fn)
+            end
+            return self
+        end
+    end
+    return control
+end
+
+local function FireChanged(control, ...)
+    if not control or not control._changedCallbacks then
+        return
+    end
+    for _, fn in ipairs(control._changedCallbacks) do
+        task.spawn(fn, ...)
+    end
 end
 
 function Library:_makeFlag(tabName, sectionName, label, explicitFlag)
@@ -1081,6 +1118,7 @@ function Library:CreateWindow(options)
     windowObj._activeTab   = nil
     windowObj._library     = self
     windowObj._title       = title
+    windowObj.Tabs         = {}
 
     -- Build breadcrumb for a tab and its sub-tabs
     function windowObj:_BuildBreadcrumb(tabObj)
@@ -1284,10 +1322,29 @@ function Library:CreateWindow(options)
         end)
 
         table.insert(self._tabs, tabObj)
+        self.Tabs[name] = tabObj
 
         -- Auto-select first tab
         if #self._tabs == 1 then
             self:_SelectTab(tabObj)
+        end
+
+        function tabObj:UpdateWarningBox(opts)
+            opts = opts or {}
+            self._warningBox = self._warningBox or self:AddSection(opts.Title or "Warning", "Left")
+            if opts.Text then
+                if self._warningLabel then
+                    self._warningLabel:Set(opts.Text)
+                else
+                    self._warningLabel = self._warningBox:AddLabel(opts.Text, {
+                        Color = Theme.NotifWarning,
+                        RichText = true,
+                    })
+                end
+            end
+            if self._warningBox and self._warningBox._frame then
+                self._warningBox._frame.Visible = opts.Visible ~= false
+            end
         end
 
         -- Section creation
@@ -1369,9 +1426,11 @@ function Library:CreateWindow(options)
 
             local function registerControl(control, controlType, itemLabel, opts)
                 opts = opts or {}
+                EnsureObservable(control)
                 control.Type = controlType
                 control.Label = itemLabel
                 control.Flag = self._library:_makeFlag(self._name, sectionName, itemLabel, opts.Flag)
+                control.Index = tostring(opts.Index or control.Flag)
                 control.Save = opts.Save ~= false
                 control._library = self._library
                 if not control.GetValue and control.Value ~= nil then
@@ -1384,7 +1443,17 @@ function Library:CreateWindow(options)
                         return selfControl:SetValue(value)
                     end
                 end
+                if control.Set and not control.SetValue then
+                    control.SetValue = function(selfControl, value)
+                        return selfControl:Set(value)
+                    end
+                end
                 self._library:_registerControl(control)
+                self._library.Options[control.Index] = control
+                self._library.Flags[control.Flag] = control
+                if controlType == "toggle" or controlType == "checkbox" then
+                    self._library.Toggles[control.Index] = control
+                end
                 table.insert(sectionObj._items, control)
                 return control
             end
@@ -1394,11 +1463,11 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddToggle(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local default  = opts.Default ~= nil and opts.Default or false
                 local callback = opts.Callback or function() end
                 local tooltip  = opts.Tooltip or nil
                 local disabledTooltip = opts.DisabledTooltip or tooltip
-                local flag     = opts.Flag or nil
                 local disabled = opts.Disabled ~= nil and opts.Disabled or false
 
                 local value = default
@@ -1411,7 +1480,7 @@ function Library:CreateWindow(options)
                 MakePadding(row, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -1441,6 +1510,7 @@ function Library:CreateWindow(options)
                 })
                 MakeRounded(knob, 7)
 
+                local toggleObj
                 local function SetToggle(v, skipCallback)
                     value = v
                     if disabled then return end
@@ -1459,6 +1529,8 @@ function Library:CreateWindow(options)
                     if not skipCallback then
                         callback(v)
                     end
+                    toggleObj.Value = value
+                    FireChanged(toggleObj, value)
                 end
 
                 local btn = Create("TextButton", {
@@ -1480,9 +1552,12 @@ function Library:CreateWindow(options)
                     end)
                 end
 
-                local toggleObj = {
+                toggleObj = EnsureObservable({
                     Value = value,
                     Set = function(self, v)
+                        SetToggle(v, false)
+                    end,
+                    SetValue = function(self, v)
                         SetToggle(v, false)
                     end,
                     Toggle = function(self)
@@ -1491,9 +1566,28 @@ function Library:CreateWindow(options)
                     GetValue = function(self)
                         return value
                     end,
-                }
+                })
+                toggleObj.Index = index
+                toggleObj:AddColorPicker = function(self, pickerIndex, pickerOpts)
+                    pickerOpts = pickerOpts or {}
+                    pickerOpts.Index = pickerIndex
+                    return sectionObj:AddColorPicker(pickerIndex, pickerOpts)
+                end
+                toggleObj:AddKeyPicker = function(self, pickerIndex, pickerOpts)
+                    pickerOpts = pickerOpts or {}
+                    pickerOpts.Index = pickerIndex
+                    if pickerOpts.SyncToggleState == nil then
+                        pickerOpts.SyncToggleState = true
+                    end
+                    pickerOpts.ParentToggle = self
+                    return sectionObj:AddKeyPicker(pickerIndex, pickerOpts)
+                end
                 sectionObj._library:_attachTooltip(btn, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(toggleObj, "toggle", label, opts)
+                return registerControl(toggleObj, "toggle", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -1501,6 +1595,7 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddSlider(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local min      = opts.Min or 0
                 local max      = opts.Max or 100
                 local default  = opts.Default ~= nil and opts.Default or min
@@ -1530,7 +1625,7 @@ function Library:CreateWindow(options)
                 })
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -1579,6 +1674,7 @@ function Library:CreateWindow(options)
                 MakeRounded(knob, 7)
                 MakeStroke(knob, Theme.SliderFill, 1.5)
 
+                local sliderObj
                 local function SetSlider(v, skipCallback)
                     v = Clamp(v, min, max)
                     if step > 0 then
@@ -1591,6 +1687,8 @@ function Library:CreateWindow(options)
                     knob.Position = UDim2.new(frac, 0, 0.5, 0)
                     valueLabel.Text = tostring(Round(v, decimals)) .. suffix
                     if not skipCallback then callback(v) end
+                    sliderObj.Value = value
+                    FireChanged(sliderObj, value)
                 end
 
                 if not disabled then
@@ -1624,30 +1722,47 @@ function Library:CreateWindow(options)
                     end)
                 end
 
-                local sliderObj = {
+                sliderObj = EnsureObservable({
                     Value = value,
                     Set = function(self, v)
+                        SetSlider(v, false)
+                    end,
+                    SetValue = function(self, v)
                         SetSlider(v, false)
                     end,
                     GetValue = function(self)
                         return value
                     end,
-                }
+                })
+                sliderObj.Index = index
                 sectionObj._library:_attachTooltip(trackBtn or container, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(sliderObj, "slider", label, opts)
+                return registerControl(sliderObj, "slider", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
             -- ADD BUTTON
             -- ====================================================
             function sectionObj:AddButton(label, opts)
-                local rawOpts = opts
-                opts = type(opts) == "table" and opts or {}
-                local callback  = opts.Callback or (type(rawOpts) == "function" and rawOpts) or function() end
+                if type(label) == "table" and opts == nil then
+                    opts = label
+                    label = opts.Text or opts.Label or "Button"
+                else
+                    local rawOpts = opts
+                    opts = type(opts) == "table" and opts or {}
+                    if type(rawOpts) == "function" then
+                        opts.Callback = rawOpts
+                    end
+                end
+                local callback  = opts.Callback or opts.Func or function() end
                 local tooltip   = opts.Tooltip or nil
                 local disabledTooltip = opts.DisabledTooltip or tooltip
                 local disabled  = opts.Disabled ~= nil and opts.Disabled or false
                 local variant   = opts.Variant or "Default" -- Default, Primary, Danger
+                local doubleClick = opts.DoubleClick or false
 
                 local variantColors = {
                     Default = Theme.ButtonBg,
@@ -1677,6 +1792,7 @@ function Library:CreateWindow(options)
                 })
                 MakeRounded(btn, 6)
                 MakeStroke(btn, Theme.ButtonBorder, 1)
+                local clickArmed = false
 
                 if not disabled then
                     btn.MouseEnter:Connect(function()
@@ -1690,7 +1806,19 @@ function Library:CreateWindow(options)
                     end)
                     btn.MouseButton1Up:Connect(function()
                         Tween(btn, TweenInfo.new(0.12), { Size = UDim2.new(0, 96, 0, 24) })
-                        callback()
+                        if doubleClick then
+                            if clickArmed then
+                                clickArmed = false
+                                callback()
+                            else
+                                clickArmed = true
+                                task.delay(0.35, function()
+                                    clickArmed = false
+                                end)
+                            end
+                        else
+                            callback()
+                        end
                     end)
                 end
 
@@ -1703,6 +1831,9 @@ function Library:CreateWindow(options)
                         disabled = v
                         btn.TextColor3 = v and Theme.TextDisabled or Theme.TextPrimary
                     end,
+                    AddButton = function(self, nestedOpts)
+                        return sectionObj:AddButton(nestedOpts)
+                    end,
                 }
                 sectionObj._library:_attachTooltip(btn, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
                 return btnObj
@@ -1711,8 +1842,30 @@ function Library:CreateWindow(options)
             -- ====================================================
             -- ADD LABEL
             -- ====================================================
-            function sectionObj:AddLabel(text, opts)
-                opts = opts or {}
+            function sectionObj:AddLabel(text, opts, idx)
+                local labelText = text
+                local wrapFlag = false
+                if type(opts) == "boolean" then
+                    wrapFlag = opts
+                    opts = {}
+                    if idx then
+                        opts.Index = idx
+                    end
+                elseif type(text) == "string" and type(opts) == "table" then
+                    if opts.Text then
+                        labelText = opts.Text
+                        opts.Index = opts.Index or text
+                    end
+                    wrapFlag = opts.DoesWrap or false
+                elseif type(text) == "table" and opts == nil then
+                    opts = text
+                    labelText = opts.Text or ""
+                    wrapFlag = opts.DoesWrap or false
+                else
+                    opts = opts or {}
+                end
+
+                local index = tostring(opts.Index or idx or labelText)
                 local color = opts.Color or Theme.TextSecondary
                 local size  = opts.Size or 11
                 local rich  = opts.RichText or false
@@ -1726,7 +1879,7 @@ function Library:CreateWindow(options)
                 MakePadding(row, 2, 2, 12, 12)
 
                 local label = Create("TextLabel", {
-                    Text = text,
+                    Text = labelText,
                     Font = Font.Regular,
                     TextSize = size,
                     TextColor3 = color,
@@ -1734,20 +1887,40 @@ function Library:CreateWindow(options)
                     Size = UDim2.new(1, 0, 0, 18),
                     AutomaticSize = Enum.AutomaticSize.Y,
                     TextXAlignment = Enum.TextXAlignment.Left,
-                    TextWrapped = true,
+                    TextWrapped = wrapFlag,
                     RichText = rich,
                     Parent = row,
                 })
 
-                local labelObj = {
+                local labelObj = EnsureObservable({
                     _label = label,
                     Set = function(self, txt)
                         label.Text = txt
+                        FireChanged(self, txt)
+                    end,
+                    SetText = function(self, txt)
+                        label.Text = txt
+                        FireChanged(self, txt)
                     end,
                     SetColor = function(self, c)
                         label.TextColor3 = c
                     end,
-                }
+                    GetValue = function(self)
+                        return label.Text
+                    end,
+                })
+                labelObj.Index = index
+                labelObj:AddColorPicker = function(self, pickerIndex, pickerOpts)
+                    pickerOpts = pickerOpts or {}
+                    pickerOpts.Index = pickerIndex
+                    return sectionObj:AddColorPicker(pickerIndex, pickerOpts)
+                end
+                labelObj:AddKeyPicker = function(self, pickerIndex, pickerOpts)
+                    pickerOpts = pickerOpts or {}
+                    pickerOpts.Index = pickerIndex
+                    return sectionObj:AddKeyPicker(pickerIndex, pickerOpts)
+                end
+                sectionObj._library.Options[index] = labelObj
                 return labelObj
             end
 
@@ -1783,18 +1956,47 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddDropdown(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local options   = opts.Options or opts.Values or {}
-                local default   = opts.Default or (options[1])
+                if opts.SpecialType == "Player" then
+                    options = {}
+                    for _, player in ipairs(Players:GetPlayers()) do
+                        if not opts.ExcludeLocalPlayer or player ~= LocalPlayer then
+                            table.insert(options, player.Name)
+                        end
+                    end
+                elseif opts.SpecialType == "Team" then
+                    options = {}
+                    for _, team in ipairs(game:GetService("Teams"):GetChildren()) do
+                        table.insert(options, team.Name)
+                    end
+                end
+                local default   = opts.Default ~= nil and opts.Default or options[1]
                 local callback  = opts.Callback or function() end
                 local multi     = opts.Multi or false
+                local searchable = opts.Searchable or false
+                local disabledValues = {}
+                for _, value in ipairs(opts.DisabledValues or {}) do
+                    disabledValues[tostring(value)] = true
+                end
+                local formatDisplayValue = opts.FormatDisplayValue
+                local maxVisibleDropdownItems = opts.MaxVisibleDropdownItems or 8
                 local tooltip   = opts.Tooltip or nil
                 local disabledTooltip = opts.DisabledTooltip or tooltip
                 local disabled  = opts.Disabled ~= nil and opts.Disabled or false
 
+                if type(default) == "number" then
+                    default = options[default]
+                end
+
                 local value = default
                 local multiSelected = {}
                 if multi and type(default) == "table" then
-                    multiSelected = default
+                    for key, state in pairs(default) do
+                        if state then
+                            table.insert(multiSelected, key)
+                        end
+                    end
                 end
 
                 local container = Create("Frame", {
@@ -1807,7 +2009,7 @@ function Library:CreateWindow(options)
                 MakePadding(container, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -1834,6 +2036,8 @@ function Library:CreateWindow(options)
                 })
                 MakeRounded(dropBtn, 6)
                 MakeStroke(dropBtn, Theme.DropdownBorder, 1)
+
+                local searchBox
 
                 -- Arrow icon
                 local arrow = Create("TextLabel", {
@@ -1863,6 +2067,7 @@ function Library:CreateWindow(options)
                 MakePadding(dropList, 4, 4, 0, 0)
 
                 local listLayout = MakeListLayout(dropList, 2)
+                local dropObj
 
                 local function CloseDropdown()
                     dropList.Visible = false
@@ -1879,31 +2084,62 @@ function Library:CreateWindow(options)
                         if #multiSelected == 0 then
                             dropBtn.Text = "None"
                         else
-                            dropBtn.Text = table.concat(multiSelected, ", ")
+                            local displayValues = {}
+                            for _, selected in ipairs(multiSelected) do
+                                table.insert(displayValues, formatDisplayValue and (formatDisplayValue(selected) or selected) or selected)
+                            end
+                            dropBtn.Text = table.concat(displayValues, ", ")
                         end
                     else
-                        dropBtn.Text = tostring(value or "None")
+                        local display = formatDisplayValue and value and (formatDisplayValue(value) or value) or value
+                        dropBtn.Text = tostring(display or "None")
                     end
                 end
 
                 local function RebuildList()
                     for _, c in pairs(dropList:GetChildren()) do
-                        if c:IsA("TextButton") or c:IsA("Frame") then
+                        if c:IsA("TextButton") or c:IsA("Frame") or c:IsA("TextBox") then
                             c:Destroy()
                         end
                     end
 
-                    local totalH = 0
+                    local filteredOptions = {}
+                    local filter = searchBox and string.lower(searchBox.Text) or ""
                     for _, opt in ipairs(options) do
+                        if filter == "" or string.find(string.lower(tostring(opt)), filter, 1, true) then
+                            table.insert(filteredOptions, opt)
+                        end
+                    end
+
+                    if searchable then
+                        searchBox = Create("TextBox", {
+                            BackgroundColor3 = Theme.InputBg,
+                            BorderSizePixel = 0,
+                            Size = UDim2.new(1, 0, 0, 24),
+                            PlaceholderText = "Search...",
+                            Text = filter,
+                            Font = Font.Regular,
+                            TextSize = 11,
+                            TextColor3 = Theme.TextPrimary,
+                            Parent = dropList,
+                        })
+                        MakeRounded(searchBox, 4)
+                        MakeStroke(searchBox, Theme.InputBorder, 1)
+                        MakePadding(searchBox, 0, 0, 6, 6)
+                        searchBox:GetPropertyChangedSignal("Text"):Connect(RebuildList)
+                    end
+
+                    local totalH = 0
+                    for _, opt in ipairs(filteredOptions) do
                         local isSelected = multi and table.find(multiSelected, opt) ~= nil or opt == value
                         local item = Create("TextButton", {
                             BackgroundColor3 = isSelected and Theme.DropdownSelected or Theme.DropdownItem,
                             BackgroundTransparency = isSelected and 0.2 or 0,
                             Size = UDim2.new(1, 0, 0, 26),
-                            Text = "  " .. tostring(opt),
+                            Text = "  " .. tostring(formatDisplayValue and (formatDisplayValue(opt) or opt) or opt),
                             Font = Font.Regular,
                             TextSize = 11,
-                            TextColor3 = isSelected and Theme.AccentLight or Theme.TextPrimary,
+                            TextColor3 = disabledValues[tostring(opt)] and Theme.TextDisabled or (isSelected and Theme.AccentLight or Theme.TextPrimary),
                             TextXAlignment = Enum.TextXAlignment.Left,
                             AutoButtonColor = false,
                             ZIndex = 51,
@@ -1928,6 +2164,9 @@ function Library:CreateWindow(options)
                         end)
 
                         item.MouseButton1Click:Connect(function()
+                            if disabledValues[tostring(opt)] then
+                                return
+                            end
                             if multi then
                                 local idx = table.find(multiSelected, opt)
                                 if idx then
@@ -1941,6 +2180,8 @@ function Library:CreateWindow(options)
                                 CloseDropdown()
                                 callback(value)
                             end
+                            dropObj.Value = multi and multiSelected or value
+                            FireChanged(dropObj, dropObj.Value)
                             UpdateLabel()
                             RebuildList()
                         end)
@@ -1948,7 +2189,9 @@ function Library:CreateWindow(options)
                         totalH = totalH + 28
                     end
 
-                    dropList.Size = UDim2.new(1, 0, 0, math.min(totalH + 8, 180))
+                    local headerHeight = searchable and 30 or 0
+                    local maxHeight = maxVisibleDropdownItems * 28
+                    dropList.Size = UDim2.new(1, 0, 0, math.min(totalH + headerHeight + 8, maxHeight + headerHeight + 8))
                 end
 
                 RebuildList()
@@ -1972,28 +2215,54 @@ function Library:CreateWindow(options)
                     end
                 end)
 
-                local dropObj = {
+                dropObj = EnsureObservable({
                     Value = value,
                     Set = function(self, v)
                         if multi and type(v) == "table" then
-                            multiSelected = v
+                            multiSelected = {}
+                            for key, state in pairs(v) do
+                                if state then
+                                    table.insert(multiSelected, key)
+                                end
+                            end
                         else
+                            if type(v) == "number" then
+                                v = options[v]
+                            end
                             value = v
                         end
                         UpdateLabel()
                         RebuildList()
-                        callback(v)
+                        self.Value = multi and multiSelected or value
+                        callback(self.Value)
+                        FireChanged(self, self.Value)
+                    end,
+                    SetValue = function(self, v)
+                        self:Set(v)
                     end,
                     SetOptions = function(self, newOpts)
                         options = newOpts
                         RebuildList()
                     end,
                     GetValue = function(self)
-                        return multi and multiSelected or value
+                        if multi then
+                            local mapped = {}
+                            for _, selected in ipairs(multiSelected) do
+                                mapped[selected] = true
+                            end
+                            return mapped
+                        end
+                        return value
                     end,
-                }
+                })
+                dropObj.Index = index
                 sectionObj._library:_attachTooltip(dropBtn, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(dropObj, "dropdown", label, opts)
+                UpdateLabel()
+                return registerControl(dropObj, "dropdown", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -2001,6 +2270,7 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddTextbox(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local placeholder = opts.Placeholder or "Type here..."
                 local default     = opts.Default or ""
                 local callback    = opts.Callback or function() end
@@ -2019,7 +2289,7 @@ function Library:CreateWindow(options)
                 MakePadding(container, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -2069,22 +2339,32 @@ function Library:CreateWindow(options)
                     end
                     tbObj.Value = text
                     callback(text, enterPressed)
+                    FireChanged(tbObj, text, enterPressed)
                     onLoseFocus(text, enterPressed)
                 end)
 
-                tbObj = {
+                tbObj = EnsureObservable({
                     _textbox = textbox,
                     Value = textbox.Text,
                     Set = function(self, v)
                         textbox.Text = tostring(v)
                         self.Value = textbox.Text
+                        FireChanged(self, self:GetValue())
+                    end,
+                    SetValue = function(self, v)
+                        self:Set(v)
                     end,
                     GetValue = function(self)
                         return numeric and (tonumber(textbox.Text) or 0) or textbox.Text
                     end,
-                }
+                })
+                tbObj.Index = index
                 sectionObj._library:_attachTooltip(inputFrame, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(tbObj, "textbox", label, opts)
+                return registerControl(tbObj, "textbox", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -2092,12 +2372,16 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddKeybind(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local default   = opts.Default or Enum.KeyCode.Unknown
                 local callback  = opts.Callback or function() end
+                local changedCallback = opts.ChangedCallback or function() end
                 local holdCallback = opts.HoldCallback or nil
                 local tooltip   = opts.Tooltip or nil
                 local disabledTooltip = opts.DisabledTooltip or tooltip
                 local disabled  = opts.Disabled ~= nil and opts.Disabled or false
+                local syncToggleState = opts.SyncToggleState or false
+                local parentToggle = opts.ParentToggle
                 local modes = { "Toggle", "Hold", "Always", "Press" }
 
                 local currentKey = default
@@ -2122,7 +2406,7 @@ function Library:CreateWindow(options)
                 MakePadding(row, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -2136,8 +2420,8 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.KeybindBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 72, 0, 24),
-                    Text = currentKey == Enum.KeyCode.Unknown and "None" or currentKey.Name,
+                    Size = UDim2.new(0, 92, 0, 24),
+                    Text = "",
                     Font = Font.Regular,
                     TextSize = 11,
                     TextColor3 = Theme.TextPrimary,
@@ -2147,6 +2431,7 @@ function Library:CreateWindow(options)
                 MakeRounded(keyBtn, 6)
                 MakeStroke(keyBtn, Theme.KeybindBorder, 1)
                 local kbStroke = keyBtn:FindFirstChildWhichIsA("UIStroke")
+                local kbObj
 
                 local function updateButtonText()
                     if listening then
@@ -2157,12 +2442,33 @@ function Library:CreateWindow(options)
                     end
                 end
 
-                local function SetKey(key)
+                local function syncParentToggle(newState)
+                    if syncToggleState and parentToggle and parentToggle.SetValue then
+                        parentToggle:SetValue(newState)
+                    end
+                end
+
+                local function fireStateChanged(payload)
+                    if kbObj then
+                        kbObj.Value = currentKey
+                        kbObj.Mode = currentMode
+                    end
+                    FireChanged(kbObj, payload)
+                end
+
+                local function SetKey(key, skipChanged)
                     currentKey = NormalizeKeybindToken(key)
                     listening = false
                     updateButtonText()
                     if kbStroke then
                         Tween(kbStroke, TweenInfo.new(0.15), { Color = Theme.KeybindBorder })
+                    end
+                    if not skipChanged then
+                        changedCallback(currentKey, nil)
+                        fireStateChanged({
+                            Key = KeyTokenToDisplay(currentKey),
+                            Mode = currentMode,
+                        })
                     end
                 end
 
@@ -2174,12 +2480,19 @@ function Library:CreateWindow(options)
                     currentMode = mode
                     if mode == "Always" then
                         state = true
+                        syncParentToggle(true)
                     elseif mode ~= "Toggle" then
                         state = false
+                        syncParentToggle(false)
                     end
                     updateButtonText()
-                    if fireCallback and mode ~= "Press" then
+                    if fireCallback then
                         callback(state, currentKey, currentMode)
+                        fireStateChanged({
+                            Key = KeyTokenToDisplay(currentKey),
+                            Mode = currentMode,
+                            State = state,
+                        })
                     end
                 end
 
@@ -2218,20 +2531,42 @@ function Library:CreateWindow(options)
                         local token = GetInputToken(input)
                         if listening then
                             SetKey(token)
-                            callback(currentKey, currentMode)
                         elseif token == currentKey then
                             if currentMode == "Press" then
-                                callback(currentKey, currentMode)
+                                callback(true, currentKey, currentMode)
+                                fireStateChanged({
+                                    Key = KeyTokenToDisplay(currentKey),
+                                    Mode = currentMode,
+                                    State = true,
+                                })
                             elseif currentMode == "Hold" then
                                 state = true
+                                syncParentToggle(true)
                                 callback(true, currentKey, currentMode)
+                                fireStateChanged({
+                                    Key = KeyTokenToDisplay(currentKey),
+                                    Mode = currentMode,
+                                    State = true,
+                                })
                                 FireHoldLoop()
                             elseif currentMode == "Toggle" then
                                 state = not state
+                                syncParentToggle(state)
                                 callback(state, currentKey, currentMode)
+                                fireStateChanged({
+                                    Key = KeyTokenToDisplay(currentKey),
+                                    Mode = currentMode,
+                                    State = state,
+                                })
                             elseif currentMode == "Always" then
                                 state = true
+                                syncParentToggle(true)
                                 callback(true, currentKey, currentMode)
+                                fireStateChanged({
+                                    Key = KeyTokenToDisplay(currentKey),
+                                    Mode = currentMode,
+                                    State = true,
+                                })
                             end
                         end
                     end)
@@ -2240,25 +2575,39 @@ function Library:CreateWindow(options)
                         local token = GetInputToken(input)
                         if token == currentKey and currentMode == "Hold" then
                             state = false
+                            syncParentToggle(false)
                             callback(false, currentKey, currentMode)
+                            fireStateChanged({
+                                Key = KeyTokenToDisplay(currentKey),
+                                Mode = currentMode,
+                                State = false,
+                            })
                         end
                     end)
                 end
 
                 updateButtonText()
 
-                local kbObj = {
+                kbObj = EnsureObservable({
                     Value = currentKey,
                     Mode = currentMode,
                     Set = function(self, key)
                         if type(key) == "table" then
-                            SetKey(key.Key or key[1] or currentKey)
+                            SetKey(key.Key or key[1] or currentKey, true)
                             SetMode(key.Mode or key[2] or currentMode, false)
                         else
-                            SetKey(key)
+                            SetKey(key, true)
                         end
                         self.Value = currentKey
                         self.Mode = currentMode
+                        fireStateChanged({
+                            Key = KeyTokenToDisplay(currentKey),
+                            Mode = currentMode,
+                            State = state,
+                        })
+                    end,
+                    SetValue = function(self, key)
+                        self:Set(key)
                     end,
                     GetValue = function(self)
                         return {
@@ -2272,10 +2621,27 @@ function Library:CreateWindow(options)
                     SetMode = function(self, mode)
                         SetMode(mode, false)
                         self.Mode = currentMode
+                        fireStateChanged({
+                            Key = KeyTokenToDisplay(currentKey),
+                            Mode = currentMode,
+                            State = state,
+                        })
                     end,
-                }
+                    OnClick = function(self, fn)
+                        return self:OnChanged(function(payload)
+                            if type(payload) == "table" and payload.Mode == "Toggle" then
+                                fn(payload.State)
+                            end
+                        end)
+                    end,
+                })
+                kbObj.Index = index
                 sectionObj._library:_attachTooltip(keyBtn, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(kbObj, "keybind", label, opts)
+                return registerControl(kbObj, "keybind", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -2283,6 +2649,7 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddColorPicker(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local default  = opts.Default or Color3.fromRGB(148, 100, 220)
                 local callback = opts.Callback or function() end
                 local tooltip  = opts.Tooltip or nil
@@ -2302,7 +2669,7 @@ function Library:CreateWindow(options)
                 MakePadding(container, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -2382,13 +2749,18 @@ function Library:CreateWindow(options)
                 MakeRounded(hueKnob, 3)
                 MakeStroke(hueKnob, Color3.new(1, 1, 1), 1)
 
+                local cpObj
                 local function UpdateColor()
                     value = Color3.fromHSV(hue, sat, val2)
                     swatch.BackgroundColor3 = value
                     svField.BackgroundColor3 = Color3.fromHSV(hue, 1, 1)
                     svKnob.Position = UDim2.new(sat, 0, 1 - val2, 0)
                     hueKnob.Position = UDim2.new(hue, 0, 0.5, 0)
+                    if cpObj then
+                        cpObj.Value = value
+                    end
                     callback(value)
+                    FireChanged(cpObj, value)
                 end
 
                 -- SV interaction
@@ -2439,19 +2811,32 @@ function Library:CreateWindow(options)
                     picker.Visible = not picker.Visible
                 end)
 
-                local cpObj = {
+                cpObj = EnsureObservable({
                     Value = value,
+                    Transparency = opts.Transparency or 0,
                     Set = function(self, color)
                         value = color
                         hue, sat, val2 = Color3.toHSV(color)
                         UpdateColor()
+                        FireChanged(self, value)
+                    end,
+                    SetValue = function(self, color)
+                        self:Set(color)
+                    end,
+                    SetValueRGB = function(self, color)
+                        self:Set(color)
                     end,
                     GetValue = function(self)
                         return value
                     end,
-                }
+                })
+                cpObj.Index = index
                 sectionObj._library:_attachTooltip(swatch, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(cpObj, "colorpicker", label, opts)
+                return registerControl(cpObj, "colorpicker", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -2532,6 +2917,7 @@ function Library:CreateWindow(options)
             -- ====================================================
             function sectionObj:AddOptionButton(label, opts)
                 opts = opts or {}
+                local index, displayText = NormalizeDisplayAndIndex(label, opts)
                 local options   = opts.Options or opts.Values or {"Option 1"}
                 local default   = opts.Default or options[1]
                 local callback  = opts.Callback or function() end
@@ -2549,7 +2935,7 @@ function Library:CreateWindow(options)
                 MakePadding(container, 0, 0, 12, 12)
 
                 local labelEl = Create("TextLabel", {
-                    Text = label,
+                    Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
                     TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
@@ -2573,6 +2959,7 @@ function Library:CreateWindow(options)
                 })
                 MakeRounded(optBtn, 6)
                 MakeStroke(optBtn, Theme.ButtonBorder, 1)
+                local optionButtonObj
 
                 if not disabled then
                     optBtn.MouseButton1Click:Connect(function()
@@ -2581,6 +2968,8 @@ function Library:CreateWindow(options)
                         value = options[idx]
                         optBtn.Text = value
                         callback(value)
+                        optionButtonObj.Value = value
+                        FireChanged(optionButtonObj, value)
                     end)
                     optBtn.MouseEnter:Connect(function()
                         Tween(optBtn, TweenInfo.new(0.12), { BackgroundColor3 = Theme.ButtonBgHover })
@@ -2590,16 +2979,26 @@ function Library:CreateWindow(options)
                     end)
                 end
 
-                local optionButtonObj = {
+                optionButtonObj = EnsureObservable({
                     Value = value,
                     Set = function(self, v)
                         value = v
                         optBtn.Text = v
+                        self.Value = value
+                        FireChanged(self, value)
+                    end,
+                    SetValue = function(self, v)
+                        self:Set(v)
                     end,
                     GetValue = function(self) return value end,
-                }
+                })
+                optionButtonObj.Index = index
                 sectionObj._library:_attachTooltip(optBtn, disabled and disabledTooltip or tooltip, disabled and disabledTooltip or nil)
-                return registerControl(optionButtonObj, "optionbutton", label, opts)
+                return registerControl(optionButtonObj, "optionbutton", displayText, {
+                    Flag = opts.Flag,
+                    Index = index,
+                    Save = opts.Save,
+                })
             end
 
             -- ====================================================
@@ -2609,11 +3008,160 @@ function Library:CreateWindow(options)
                 return self:AddKeybind(label, opts)
             end
 
+            function sectionObj:AddCheckbox(label, opts)
+                return self:AddToggle(label, opts)
+            end
+
+            function sectionObj:AddInput(label, opts)
+                return self:AddTextbox(label, opts)
+            end
+
+            function sectionObj:AddDivider()
+                return self:AddSeparator()
+            end
+
+            function sectionObj:AddKeyPicker(label, opts)
+                return self:AddKeybind(label, opts)
+            end
+
             table.insert(tabObj._sections, sectionObj)
             return self._library:_extendSection(sectionObj)
         end
 
+        function tabObj:AddLeftGroupbox(name)
+            return self:AddSection(name, "Left")
+        end
+
+        function tabObj:AddRightGroupbox(name)
+            return self:AddSection(name, "Right")
+        end
+
+        local function createTabbox(column)
+            local parent = column == "Right" and tabObj._rightCol or tabObj._leftCol
+            local host = Create("Frame", {
+                Name = "Tabbox",
+                BackgroundColor3 = Theme.SectionBg,
+                Size = UDim2.new(1, 0, 0, 0),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                ClipsDescendants = false,
+                Parent = parent,
+            })
+            MakeRounded(host, 10)
+            MakeStroke(host, Theme.SectionBorder, 1)
+            MakePadding(host, 10, 12, 10, 10)
+
+            local header = Create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 24),
+                Parent = host,
+            })
+            local headerLayout = MakeListLayout(header, 6, Enum.FillDirection.Horizontal)
+
+            local pages = Create("Frame", {
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 0),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                Parent = host,
+            })
+            MakePadding(pages, 8, 0, 0, 0)
+
+            local tabbox = {
+                _host = host,
+                _header = header,
+                _pages = {},
+                _active = nil,
+            }
+
+            function tabbox:AddTab(tabName)
+                local button = Create("TextButton", {
+                    BackgroundColor3 = Theme.ButtonBg,
+                    AutomaticSize = Enum.AutomaticSize.X,
+                    Size = UDim2.new(0, 0, 1, 0),
+                    Text = "  " .. tostring(tabName) .. "  ",
+                    Font = Font.Regular,
+                    TextSize = 11,
+                    TextColor3 = Theme.TextSecondary,
+                    AutoButtonColor = false,
+                    Parent = header,
+                })
+                MakeRounded(button, 6)
+                MakeStroke(button, Theme.ButtonBorder, 1)
+
+                local proxy = tabObj:AddSection(tabName, column)
+                proxy._frame.Parent = pages
+                proxy._frame.Visible = false
+
+                local function selectPage()
+                    for _, page in ipairs(tabbox._pages) do
+                        page.section._frame.Visible = false
+                        page.button.BackgroundColor3 = Theme.ButtonBg
+                        page.button.TextColor3 = Theme.TextSecondary
+                    end
+                    proxy._frame.Visible = true
+                    button.BackgroundColor3 = Theme.Accent
+                    button.TextColor3 = Theme.ToggleKnob
+                    tabbox._active = proxy
+                end
+
+                button.MouseButton1Click:Connect(selectPage)
+                table.insert(tabbox._pages, {
+                    button = button,
+                    section = proxy,
+                })
+
+                if not tabbox._active then
+                    selectPage()
+                end
+
+                return proxy
+            end
+
+            return tabbox
+        end
+
+        function tabObj:AddLeftTabbox()
+            return createTabbox("Left")
+        end
+
+        function tabObj:AddRightTabbox()
+            return createTabbox("Right")
+        end
+
+        local function ensureInlineSection()
+            tabObj._inlineSection = tabObj._inlineSection or tabObj:AddSection("General", "Left")
+            return tabObj._inlineSection
+        end
+
+        function tabObj:AddLabel(...)
+            return ensureInlineSection():AddLabel(...)
+        end
+
+        function tabObj:AddButton(...)
+            return ensureInlineSection():AddButton(...)
+        end
+
         return tabObj
+    end
+
+    function windowObj:AddKeyTab(name, iconId)
+        local keyTab = self:AddTab(name, iconId)
+        function keyTab:AddKeyBox(callback)
+            local section = self._keyBoxSection
+            if not section then
+                section = self:AddSection("Key", "Left")
+                self._keyBoxSection = section
+            end
+            return section:AddTextbox("Key Input", {
+                Placeholder = "Enter key",
+                Callback = function(value, enterPressed)
+                    if enterPressed then
+                        callback(value)
+                    end
+                end,
+                Save = false,
+            })
+        end
+        return keyTab
     end
 
     -- Toggle window visibility
@@ -2779,6 +3327,10 @@ function Library:GetTheme()
     return Theme
 end
 
+Library.Theme = function()
+    return Theme
+end
+
 -- ============================================================
 -- KEYBIND (Global toggle for UI)
 -- ============================================================
@@ -2799,6 +3351,57 @@ function Library:SetToggleKey(key)
     end)
 end
 
+function Library:OnUnload(callback)
+    if type(callback) == "function" then
+        table.insert(self._unloadCallbacks, callback)
+    end
+    return self
+end
+
+function Library:AddDraggableLabel(text)
+    if not self._gui then
+        self:Init()
+    end
+    local frame = Create("Frame", {
+        BackgroundColor3 = Theme.BackgroundSecond,
+        Position = UDim2.new(0, 24, 0, 24),
+        Size = UDim2.new(0, 180, 0, 28),
+        Parent = self._gui,
+    })
+    MakeRounded(frame, 6)
+    MakeStroke(frame, Theme.WindowBorder, 1)
+    local label = Create("TextLabel", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = text,
+        Font = Font.Regular,
+        TextSize = 12,
+        TextColor3 = Theme.TextPrimary,
+        Parent = frame,
+    })
+    MakeDraggable(frame, frame)
+    return {
+        _frame = frame,
+        SetText = function(self, newText)
+            label.Text = newText
+        end,
+        Destroy = function(self)
+            frame:Destroy()
+        end,
+    }
+end
+
+function Library:Unload()
+    if self.Unloaded then
+        return
+    end
+    self.Unloaded = true
+    for _, callback in ipairs(self._unloadCallbacks) do
+        pcall(callback)
+    end
+    self:Destroy()
+end
+
 -- ============================================================
 -- DESTROY ALL
 -- ============================================================
@@ -2813,6 +3416,10 @@ function Library:Destroy()
         self._gui = nil
     end
     self._windows = {}
+    self._controlRegistry = {}
+    self.Options = {}
+    self.Toggles = {}
+    self.Flags = {}
 end
 
 -- ============================================================
