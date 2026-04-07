@@ -872,167 +872,742 @@ function Library:Init()
 end
 
 -- ================================================================
--- SELF TEST (Phase 1 verification)
+-- WINDOW SYSTEM (Phase 2)
 -- ================================================================
 
-function Library:SelfTest()
-    print("═══════════════════════════════════════════")
-    print("  KojoLib Phase 1 — Self Test")
-    print("═══════════════════════════════════════════")
-    print(string.format("  Library: %s v%s", self.Name, self.Version))
+local WindowClass = {}
+WindowClass.__index = WindowClass
 
-    -- Test theme
-    local preset = self:GetActivePreset()
-    print(string.format("  Active Preset: %s", preset))
-    print(string.format("  Accent Color: %s", Theme._baseHex.AccentColor))
-    print(string.format("  Theme Keys: %d derived colors", (function()
-        local n = 0
-        for _ in pairs(Theme) do n = n + 1 end
-        return n
-    end)()))
+local TabClass = {}
+TabClass.__index = TabClass
 
-    -- Test all presets load
-    local presets = self:GetThemePresets()
-    print(string.format("  Theme Presets: %d loaded", #presets))
-    local allOk = true
-    for _, name in ipairs(presets) do
-        self:ApplyPreset(name)
-        if not Theme.Accent then
-            print(string.format("    ✗ %s — FAILED", name))
-            allOk = false
-        end
-    end
-    self:ApplyPreset("Default") -- reset
-    if allOk then
-        print("    ✓ All presets load correctly")
-    end
+-- Category icon assets (simple geometric shapes via image IDs)
+-- Users can override with custom icons per tab
+local DEFAULT_ICONS = {
+    Combat   = "rbxassetid://7733960981",  -- sword
+    Batting  = "rbxassetid://7743878857",  -- person
+    Misc     = "rbxassetid://7733717504",  -- settings gear
+    Settings = "rbxassetid://7743878857",  -- gear
+}
 
-    -- Test custom override
-    self:SetTheme({ AccentColor = "ff0000" })
-    local isRed = Theme.Accent.R > 0.9 and Theme.Accent.G < 0.1
-    print(string.format("  Custom Override: %s", isRed and "✓ works" or "✗ FAILED"))
-    self:SetTheme({ Preset = "Default" }) -- reset
+function Library:CreateWindow(options)
+    options = options or {}
+    local title  = options.Title or "Kojo Hub"
+    local width  = options.Width or 760
+    local height = options.Height or 560
+    local icon   = options.Icon or nil
 
-    -- Test GUI container
-    self:Init()
-    local guiOk = self._gui ~= nil and self._gui:IsA("ScreenGui")
-    print(string.format("  GUI Container: %s", guiOk and "✓ created" or "✗ FAILED"))
+    if not self._gui then self:Init() end
+    local gui = self._gui
 
-    -- Test flag system
-    local testControl = EnsureObservable({
-        Flag = "TestFlag",
-        Value = true,
-        Save = true,
-        GetValue = function(self) return self.Value end,
-        SetValue = function(self, v) self.Value = v end,
-    })
-    self:_registerControl(testControl)
-    local snapshot = self:_snapshotControls()
-    local snapOk = snapshot["TestFlag"] == true
-    print(string.format("  Flag System: %s", snapOk and "✓ works" or "✗ FAILED"))
-
-    -- Test encode/decode
-    local encoded = EncodeConfigValue(Color3.fromRGB(148, 100, 220))
-    local decoded = DecodeConfigValue(encoded)
-    local encOk = typeof(decoded) == "Color3" and math.abs(decoded.R - 148/255) < 0.01
-    print(string.format("  Config Encode/Decode: %s", encOk and "✓ works" or "✗ FAILED"))
-
-    -- Show visual proof
-    self:_ShowTestVisual()
-
-    -- Cleanup test control
-    self._controlRegistry["TestFlag"] = nil
-
-    print("═══════════════════════════════════════════")
-    print("  Phase 1 complete. Ready for Phase 2.")
-    print("═══════════════════════════════════════════")
-end
-
-function Library:_ShowTestVisual()
-    if not self._gui then return end
-
-    -- Small card showing theme colors — proves rendering works
-    local card = Create("Frame", {
-        Name = "Phase1Test",
+    -- ── Main window frame ──
+    local windowFrame = Create("Frame", {
+        Name = "Window",
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Theme.GroupboxBg,
+        BackgroundColor3 = Theme.Background,
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 300, 0, 200),
-        Parent = self._gui,
+        Size = UDim2.new(0, width, 0, height),
+        ClipsDescendants = false,
+        Parent = gui,
     })
-    MakeRounded(card, 10)
-    MakeStroke(card, Theme.WindowBorder, 1)
-    AddDropShadow(card, 20, 0.5)
+    MakeRounded(windowFrame, 10)
+    MakeStroke(windowFrame, Theme.WindowBorder, 1)
+    AddDropShadow(windowFrame, 25, 0.45)
 
-    -- Title
-    Create("TextLabel", {
-        Text = "KojoLib v" .. self.Version .. " — Phase 1 ✓",
-        Font = Font.Bold,
-        TextSize = 14,
-        TextColor3 = Theme.TextPrimary,
+    -- ── Sidebar (46px) ──
+    local sidebar = Create("Frame", {
+        Name = "Sidebar",
+        BackgroundColor3 = Theme.SidebarBg,
+        Size = UDim2.new(0, 46, 1, 0),
+        ClipsDescendants = true,
+        ZIndex = 2,
+        Parent = windowFrame,
+    })
+    MakeRounded(sidebar, 10)
+    -- Cover right corners with fill
+    Create("Frame", {
+        Name = "SidebarFill",
+        BackgroundColor3 = Theme.SidebarBg,
+        Position = UDim2.new(1, -10, 0, 0),
+        Size = UDim2.new(0, 11, 1, 0),
+        ZIndex = 2,
+        Parent = sidebar,
+    })
+    -- Right border line
+    Create("Frame", {
+        Name = "SidebarBorder",
+        BackgroundColor3 = Theme.WindowBorder,
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 1, 1, 0),
+        ZIndex = 3,
+        Parent = sidebar,
+    })
+
+    -- Logo at top of sidebar
+    local logoFrame = Create("Frame", {
+        Name = "LogoFrame",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0, 12),
-        Parent = card,
+        Size = UDim2.new(1, 0, 0, 40),
+        ZIndex = 2,
+        Parent = sidebar,
+    })
+    -- Logo border bottom
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        Position = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 3,
+        Parent = logoFrame,
+    })
+    local logoIcon = Create("ImageLabel", {
+        Name = "Logo",
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 22, 0, 22),
+        Image = icon or "rbxassetid://4483362458",
+        ImageColor3 = Theme.Accent,
+        ZIndex = 3,
+        Parent = logoFrame,
     })
 
-    -- Theme color swatches
-    local swatchY = 50
-    local presets = {"Default", "Sakura", "Neon Tokyo", "Dracula", "Cyberpunk", "Blood Moon"}
-    for i, name in ipairs(presets) do
-        local p = ThemePresets[name]
-        if p then
-            local y = swatchY + (i - 1) * 22
-            -- Accent swatch
-            Create("Frame", {
-                BackgroundColor3 = HexToColor3(p.AccentColor),
-                Position = UDim2.new(0, 16, 0, y),
-                Size = UDim2.new(0, 14, 0, 14),
-                Parent = card,
-            })
-            MakeRounded(card:FindFirstChild("") or Create("UICorner", {
-                CornerRadius = UDim.new(0, 3),
-                Parent = card:GetChildren()[#card:GetChildren()],
-            }), 3)
-            -- Label
-            Create("TextLabel", {
-                Text = name,
-                Font = Font.Regular,
-                TextSize = 11,
-                TextColor3 = Theme.TextSecondary,
-                TextXAlignment = Enum.TextXAlignment.Left,
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 38, 0, y),
-                Size = UDim2.new(0, 100, 0, 14),
-                Parent = card,
-            })
-            -- Bg swatch
-            Create("Frame", {
-                BackgroundColor3 = HexToColor3(p.BackgroundColor),
-                Position = UDim2.new(0, 150, 0, y),
-                Size = UDim2.new(0, 14, 0, 14),
-                Parent = card,
-            })
-            -- Outline swatch
-            Create("Frame", {
-                BackgroundColor3 = HexToColor3(p.OutlineColor),
-                Position = UDim2.new(0, 170, 0, y),
-                Size = UDim2.new(0, 14, 0, 14),
-                Parent = card,
-            })
-        end
-    end
+    -- Category button container
+    local catContainer = Create("Frame", {
+        Name = "Categories",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 41),
+        Size = UDim2.new(1, 0, 1, -65),
+        ZIndex = 2,
+        Parent = sidebar,
+    })
+    MakeListLayout(catContainer, 4, Enum.FillDirection.Vertical, Enum.HorizontalAlignment.Center, Enum.VerticalAlignment.Top)
+    MakePadding(catContainer, 6, 0, 0, 0)
 
-    -- Auto-remove after 10 seconds
-    task.delay(10, function()
-        if card and card.Parent then
-            card:Destroy()
+    -- Bottom hint
+    Create("TextLabel", {
+        Name = "Hint",
+        AnchorPoint = Vector2.new(0.5, 1),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.5, 0, 1, -6),
+        Size = UDim2.new(0, 30, 0, 20),
+        Text = "⌨",
+        Font = Font.Regular,
+        TextSize = 9,
+        TextColor3 = Theme.SidebarHintText,
+        ZIndex = 2,
+        Parent = sidebar,
+    })
+
+    -- ── Content area (right of sidebar) ──
+    local contentArea = Create("Frame", {
+        Name = "ContentArea",
+        BackgroundColor3 = Theme.Background,
+        Position = UDim2.new(0, 47, 0, 0),
+        Size = UDim2.new(1, -47, 1, 0),
+        ClipsDescendants = true,
+        Parent = windowFrame,
+    })
+    MakeRounded(contentArea, 10)
+    -- Cover left corners
+    Create("Frame", {
+        BackgroundColor3 = Theme.Background,
+        Size = UDim2.new(0, 10, 1, 0),
+        Parent = contentArea,
+    })
+
+    -- ── Titlebar (40px) ──
+    local titlebar = Create("Frame", {
+        Name = "Titlebar",
+        BackgroundColor3 = Theme.HeaderBg,
+        Size = UDim2.new(1, 0, 0, 40),
+        ClipsDescendants = true,
+        ZIndex = 2,
+        Parent = contentArea,
+    })
+    -- Cover bottom corners
+    Create("Frame", {
+        BackgroundColor3 = Theme.HeaderBg,
+        Position = UDim2.new(0, 0, 1, -10),
+        Size = UDim2.new(1, 0, 0, 10),
+        ZIndex = 2,
+        Parent = titlebar,
+    })
+    -- Bottom border
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        Position = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 3,
+        Parent = titlebar,
+    })
+
+    -- Breadcrumb container
+    local breadcrumb = Create("Frame", {
+        Name = "Breadcrumb",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 12, 0, 0),
+        Size = UDim2.new(0.6, 0, 1, 0),
+        ZIndex = 3,
+        Parent = titlebar,
+    })
+    local bcLayout = MakeListLayout(breadcrumb, 5, Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Center)
+
+    -- Breadcrumb labels (created once, updated on tab switch)
+    local bcRoot = Create("TextLabel", {
+        Name = "Root", Text = title,
+        Font = Font.SemiBold, TextSize = 11,
+        TextColor3 = Theme.BreadcrumbRoot,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        ZIndex = 3, Parent = breadcrumb,
+    })
+    local bcSep1 = Create("TextLabel", {
+        Name = "Sep1", Text = "›",
+        Font = Font.Regular, TextSize = 11,
+        TextColor3 = Theme.BreadcrumbSep,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 8, 1, 0),
+        ZIndex = 3, Parent = breadcrumb,
+    })
+    local bcCategory = Create("TextLabel", {
+        Name = "Category", Text = "",
+        Font = Font.Bold, TextSize = 11,
+        TextColor3 = Theme.BreadcrumbCategory,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        ZIndex = 3, Parent = breadcrumb,
+    })
+    local bcSep2 = Create("TextLabel", {
+        Name = "Sep2", Text = "›",
+        Font = Font.Regular, TextSize = 11,
+        TextColor3 = Theme.BreadcrumbSep,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 8, 1, 0),
+        ZIndex = 3, Parent = breadcrumb,
+    })
+    local bcTab = Create("TextLabel", {
+        Name = "Tab", Text = "",
+        Font = Font.Regular, TextSize = 11,
+        TextColor3 = Theme.BreadcrumbTab,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        ZIndex = 3, Parent = breadcrumb,
+    })
+
+    -- Right side of titlebar: FPS + Watermark + Close
+    local titleRight = Create("Frame", {
+        BackgroundTransparency = 1,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, -8, 0, 0),
+        Size = UDim2.new(0, 250, 1, 0),
+        ZIndex = 3,
+        Parent = titlebar,
+    })
+    MakeListLayout(titleRight, 6, Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Right, Enum.VerticalAlignment.Center)
+
+    -- FPS Badge
+    local fpsBadge = Create("Frame", {
+        Name = "FPSBadge",
+        BackgroundColor3 = Theme.BadgeBg,
+        Size = UDim2.new(0, 70, 0, 20),
+        ZIndex = 4, Parent = titleRight,
+    })
+    MakeRounded(fpsBadge, 4)
+    MakeStroke(fpsBadge, Theme.BadgeBorder, 1)
+    local fpsDot = Create("Frame", {
+        BackgroundColor3 = Theme.FPSGreen,
+        Position = UDim2.new(0, 6, 0.5, 0),
+        AnchorPoint = Vector2.new(0, 0.5),
+        Size = UDim2.new(0, 5, 0, 5),
+        ZIndex = 5, Parent = fpsBadge,
+    })
+    MakeRounded(fpsDot, 99)
+    local fpsLabel = Create("TextLabel", {
+        Text = "FPS: 60",
+        Font = Font.Mono, TextSize = 10,
+        TextColor3 = Theme.FPSGreen,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 15, 0, 0),
+        Size = UDim2.new(1, -18, 1, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ZIndex = 5, Parent = fpsBadge,
+    })
+
+    -- Watermark
+    local watermark = Create("Frame", {
+        Name = "Watermark",
+        BackgroundColor3 = Theme.BadgeBg,
+        Size = UDim2.new(0, 72, 0, 20),
+        ZIndex = 4, Parent = titleRight,
+    })
+    MakeRounded(watermark, 4)
+    MakeStroke(watermark, Theme.BadgeBorder, 1)
+    Create("TextLabel", {
+        Text = "Kojo v3.0",
+        Font = Font.Bold, TextSize = 10,
+        TextColor3 = Theme.Accent,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 5, Parent = watermark,
+    })
+
+    -- Close button
+    local closeBtn = Create("TextButton", {
+        Name = "Close", Text = "×",
+        Font = Font.Bold, TextSize = 18,
+        TextColor3 = Theme.CloseBtnDefault,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 28, 0, 28),
+        ZIndex = 4, Parent = titleRight,
+    })
+    closeBtn.MouseEnter:Connect(function()
+        closeBtn.TextColor3 = Theme.CloseBtnHover
+    end)
+    closeBtn.MouseLeave:Connect(function()
+        closeBtn.TextColor3 = Theme.CloseBtnDefault
+    end)
+
+    -- ── Subtab bar (34px) ──
+    local subtabBar = Create("Frame", {
+        Name = "SubtabBar",
+        BackgroundColor3 = Theme.SubtabBg,
+        Position = UDim2.new(0, 0, 0, 41),
+        Size = UDim2.new(1, 0, 0, 34),
+        ClipsDescendants = true,
+        ZIndex = 2,
+        Parent = contentArea,
+    })
+    Create("Frame", {
+        BackgroundColor3 = Theme.SubtabBg,
+        Position = UDim2.new(0, 0, 1, -8),
+        Size = UDim2.new(1, 0, 0, 8),
+        ZIndex = 2, Parent = subtabBar,
+    })
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        Position = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 1),
+        ZIndex = 3, Parent = subtabBar,
+    })
+    local subtabContainer = Create("Frame", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 6, 0, 0),
+        Size = UDim2.new(1, -6, 1, 0),
+        ZIndex = 3, Parent = subtabBar,
+    })
+    MakeListLayout(subtabContainer, 0, Enum.FillDirection.Horizontal, Enum.HorizontalAlignment.Left, Enum.VerticalAlignment.Top)
+
+    -- ── Tab content viewport ──
+    local tabViewport = Create("ScrollingFrame", {
+        Name = "TabViewport",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 76),
+        Size = UDim2.new(1, 0, 1, -76),
+        ClipsDescendants = true,
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = Theme.ScrollBar,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
+        ScrollingDirection = Enum.ScrollingDirection.Y,
+        Parent = contentArea,
+    })
+    MakePadding(tabViewport, 8, 8, 8, 8)
+
+    -- Draggable by titlebar
+    MakeDraggable(windowFrame, titlebar)
+
+    -- ── Window Object ──
+    local windowObj = setmetatable({}, WindowClass)
+    windowObj._frame = windowFrame
+    windowObj._sidebar = sidebar
+    windowObj._catContainer = catContainer
+    windowObj._subtabContainer = subtabContainer
+    windowObj._tabViewport = tabViewport
+    windowObj._bcCategory = bcCategory
+    windowObj._bcTab = bcTab
+    windowObj._fpsLabel = fpsLabel
+    windowObj._fpsDot = fpsDot
+    windowObj._library = self
+    windowObj._title = title
+    windowObj._categories = {}       -- { name = { btn, tabs = {tabObj,...}, activeTab } }
+    windowObj._activeCategory = nil
+    windowObj._tabObjects = {}       -- all TabClass instances
+    windowObj.Tabs = {}              -- public: Tabs["name"] = tabObj
+
+    -- Close button hides window
+    closeBtn.MouseButton1Click:Connect(function()
+        windowObj:Hide()
+    end)
+
+    -- FPS counter
+    local fpsFrames, fpsLast = 0, tick()
+    local fpsConn = RunService.Heartbeat:Connect(function()
+        fpsFrames = fpsFrames + 1
+        local now = tick()
+        if now - fpsLast >= 1 then
+            local fps = math.floor(fpsFrames / (now - fpsLast))
+            fpsLabel.Text = "FPS: " .. fps
+            local color = fps >= 50 and Theme.FPSGreen or fps >= 30 and Theme.FPSYellow or Theme.FPSRed
+            fpsLabel.TextColor3 = color
+            fpsDot.BackgroundColor3 = color
+            fpsFrames = 0
+            fpsLast = now
         end
     end)
+    table.insert(self._connections, fpsConn)
+
+    -- Toggle key
+    local toggleConn = UserInputService.InputBegan:Connect(function(input, gpe)
+        if gpe then return end
+        if input.KeyCode == self._toggleKey then
+            windowObj:Toggle()
+        end
+    end)
+    table.insert(self._connections, toggleConn)
+
+    table.insert(self._windows, windowObj)
+
+    -- ── Tab methods ──
+
+    function windowObj:_UpdateBreadcrumb()
+        if self._activeCategory then
+            bcCategory.Text = self._activeCategory
+            bcCategory.TextColor3 = Theme.BreadcrumbCategory
+            local cat = self._categories[self._activeCategory]
+            if cat and cat.activeTab then
+                bcTab.Text = cat.activeTab._name
+            end
+        end
+    end
+
+    function windowObj:_SwitchCategory(catName)
+        if self._activeCategory == catName then return end
+        -- Deactivate old
+        if self._activeCategory and self._categories[self._activeCategory] then
+            local old = self._categories[self._activeCategory]
+            old.btn.BackgroundColor3 = Color3.new(0, 0, 0)
+            old.btn.BackgroundTransparency = 1
+            old.icon.ImageColor3 = Theme.SidebarIconInactive
+        end
+        -- Activate new
+        self._activeCategory = catName
+        local cat = self._categories[catName]
+        if cat then
+            cat.btn.BackgroundColor3 = Theme.SidebarBtnActiveBg
+            cat.btn.BackgroundTransparency = 0
+            cat.icon.ImageColor3 = Theme.SidebarIconActive
+            -- Rebuild subtabs
+            self:_RebuildSubtabs(catName)
+            -- Select first tab if none active
+            if not cat.activeTab and #cat.tabs > 0 then
+                self:_SwitchTab(cat.tabs[1])
+            elseif cat.activeTab then
+                self:_SwitchTab(cat.activeTab)
+            end
+        end
+        self:_UpdateBreadcrumb()
+    end
+
+    function windowObj:_RebuildSubtabs(catName)
+        -- Clear subtab buttons
+        for _, c in pairs(subtabContainer:GetChildren()) do
+            if c:IsA("TextButton") then c:Destroy() end
+        end
+        local cat = self._categories[catName]
+        if not cat then return end
+        for i, tabObj in ipairs(cat.tabs) do
+            local isActive = cat.activeTab == tabObj
+            local stBtn = Create("TextButton", {
+                Name = "ST_" .. tabObj._name,
+                Text = tabObj._name,
+                Font = isActive and Font.Bold or Font.Regular,
+                TextSize = 11,
+                TextColor3 = isActive and Theme.SubtabActive or Theme.SubtabInactive,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 0, 1, 0),
+                AutomaticSize = Enum.AutomaticSize.X,
+                ZIndex = 4,
+                Parent = subtabContainer,
+            })
+            MakePadding(stBtn, 0, 0, 12, 12)
+            -- Active underline
+            local underline = Create("Frame", {
+                BackgroundColor3 = Theme.SubtabActive,
+                Position = UDim2.new(0, 0, 1, -2),
+                Size = UDim2.new(1, 0, 0, 2),
+                Visible = isActive,
+                ZIndex = 5,
+                Parent = stBtn,
+            })
+            stBtn.MouseEnter:Connect(function()
+                if cat.activeTab ~= tabObj then
+                    stBtn.TextColor3 = Theme.SubtabHover
+                end
+            end)
+            stBtn.MouseLeave:Connect(function()
+                if cat.activeTab ~= tabObj then
+                    stBtn.TextColor3 = Theme.SubtabInactive
+                end
+            end)
+            stBtn.MouseButton1Click:Connect(function()
+                self:_SwitchTab(tabObj)
+            end)
+            tabObj._subtabBtn = stBtn
+            tabObj._subtabUnderline = underline
+        end
+    end
+
+    function windowObj:_SwitchTab(tabObj)
+        local catName = tabObj._category
+        local cat = self._categories[catName]
+        if not cat then return end
+        -- Hide all tabs in this category
+        for _, t in ipairs(cat.tabs) do
+            t._frame.Visible = false
+            if t._subtabBtn then
+                t._subtabBtn.Font = Font.Regular
+                t._subtabBtn.TextColor3 = Theme.SubtabInactive
+                if t._subtabUnderline then t._subtabUnderline.Visible = false end
+            end
+        end
+        -- Show selected
+        tabObj._frame.Visible = true
+        cat.activeTab = tabObj
+        if tabObj._subtabBtn then
+            tabObj._subtabBtn.Font = Font.Bold
+            tabObj._subtabBtn.TextColor3 = Theme.SubtabActive
+            if tabObj._subtabUnderline then tabObj._subtabUnderline.Visible = true end
+        end
+        self:_UpdateBreadcrumb()
+    end
+
+    function windowObj:AddTab(name, iconId)
+        -- Determine category: use explicit or auto-detect
+        -- For now, each tab is its own category (flat), OR user can group
+        -- We'll support: Window:AddTab("Batting") creates category "Batting" with subtab "Batting"
+        -- Additional subtabs added via Tab:AddSubTab()
+        local catName = name
+        iconId = iconId or DEFAULT_ICONS[name] or "rbxassetid://7743878857"
+
+        -- Create category if first time
+        if not self._categories[catName] then
+            local catBtn = Create("TextButton", {
+                Name = "Cat_" .. catName,
+                BackgroundColor3 = Theme.SidebarBtnActiveBg,
+                BackgroundTransparency = 1,
+                Size = UDim2.new(0, 36, 0, 36),
+                Text = "",
+                ZIndex = 3,
+                Parent = catContainer,
+            })
+            MakeRounded(catBtn, 8)
+            MakeStroke(catBtn, Theme.SidebarBtnActiveBorder, 1, 1)
+            local catIcon = Create("ImageLabel", {
+                AnchorPoint = Vector2.new(0.5, 0.5),
+                BackgroundTransparency = 1,
+                Position = UDim2.new(0.5, 0, 0.5, 0),
+                Size = UDim2.new(0, 18, 0, 18),
+                Image = iconId,
+                ImageColor3 = Theme.SidebarIconInactive,
+                ZIndex = 4,
+                Parent = catBtn,
+            })
+            -- Hover effects
+            catBtn.MouseEnter:Connect(function()
+                if self._activeCategory ~= catName then
+                    catBtn.BackgroundTransparency = 0.8
+                    catBtn.BackgroundColor3 = HexToColor3("ffffff")
+                    catIcon.ImageColor3 = Theme.SidebarIconHover
+                end
+            end)
+            catBtn.MouseLeave:Connect(function()
+                if self._activeCategory ~= catName then
+                    catBtn.BackgroundTransparency = 1
+                    catIcon.ImageColor3 = Theme.SidebarIconInactive
+                end
+            end)
+            catBtn.MouseButton1Click:Connect(function()
+                self:_SwitchCategory(catName)
+            end)
+
+            self._categories[catName] = {
+                btn = catBtn,
+                icon = catIcon,
+                stroke = catBtn:FindFirstChildOfClass("UIStroke"),
+                tabs = {},
+                activeTab = nil,
+            }
+        end
+
+        -- Create tab content frame
+        local tabFrame = Create("Frame", {
+            Name = "Tab_" .. name,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Visible = false,
+            Parent = tabViewport,
+        })
+
+        -- Two-column row container
+        local columnContainer = Create("Frame", {
+            Name = "Columns",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = tabFrame,
+        })
+        MakeListLayout(columnContainer, 8, Enum.FillDirection.Vertical)
+
+        local tabObj = setmetatable({}, TabClass)
+        tabObj._name = name
+        tabObj._frame = tabFrame
+        tabObj._columns = columnContainer
+        tabObj._category = catName
+        tabObj._library = self
+        tabObj._subtabBtn = nil
+        tabObj._subtabUnderline = nil
+        tabObj._sections = {}
+        tabObj._currentRow = nil
+
+        local cat = self._categories[catName]
+        table.insert(cat.tabs, tabObj)
+        table.insert(self._tabObjects, tabObj)
+        self.Tabs[name] = tabObj
+
+        -- Auto-select first category
+        if not self._activeCategory then
+            self:_SwitchCategory(catName)
+        end
+
+        return tabObj
+    end
+
+    function windowObj:Toggle()
+        if windowFrame.Visible then
+            self:Hide()
+        else
+            self:Show()
+        end
+    end
+
+    function windowObj:Show()
+        windowFrame.Visible = true
+        windowFrame.Size = UDim2.new(0, width * 0.97, 0, height * 0.97)
+        Tween(windowFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, width, 0, height),
+        })
+    end
+
+    function windowObj:Hide()
+        Tween(windowFrame, TweenInfo.new(0.15, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, width * 0.97, 0, height * 0.97),
+        }, function()
+            windowFrame.Visible = false
+            windowFrame.Size = UDim2.new(0, width, 0, height)
+        end)
+    end
+
+    -- ── Tab class methods (placeholders for Phase 3) ──
+
+    function TabClass:AddLeftGroupbox(name)
+        return self:_AddGroupbox(name, "Left")
+    end
+
+    function TabClass:AddRightGroupbox(name)
+        return self:_AddGroupbox(name, "Right")
+    end
+
+    function TabClass:_AddGroupbox(name, side)
+        -- Ensure we have a row for paired groupboxes
+        if side == "Left" or not self._currentRow then
+            -- Create a new horizontal row
+            local row = Create("Frame", {
+                Name = "GBRow",
+                BackgroundTransparency = 1,
+                Size = UDim2.new(1, 0, 0, 0),
+                AutomaticSize = Enum.AutomaticSize.Y,
+                Parent = self._columns,
+            })
+            MakeListLayout(row, 8, Enum.FillDirection.Horizontal)
+            self._currentRow = row
+        end
+
+        -- Groupbox frame
+        local gb = Create("Frame", {
+            Name = "Groupbox_" .. name,
+            BackgroundColor3 = Theme.GroupboxBg,
+            Size = UDim2.new(0.5, -4, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            ClipsDescendants = true,
+            Parent = self._currentRow,
+        })
+        MakeRounded(gb, 8)
+        MakeStroke(gb, Theme.GroupboxBorder, 1)
+
+        -- Header
+        local header = Create("Frame", {
+            Name = "Header",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 32),
+            Parent = gb,
+        })
+        Create("TextLabel", {
+            Text = name,
+            Font = Font.Bold,
+            TextSize = 12,
+            TextColor3 = Theme.GroupboxTitle,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 12, 0, 0),
+            Size = UDim2.new(1, -24, 1, 0),
+            Parent = header,
+        })
+        Create("Frame", {
+            BackgroundColor3 = Theme.GroupboxHeaderBorder,
+            Position = UDim2.new(0, 0, 1, 0),
+            Size = UDim2.new(1, 0, 0, 1),
+            Parent = header,
+        })
+
+        -- Content container
+        local content = Create("Frame", {
+            Name = "Content",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 33),
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            Parent = gb,
+        })
+        MakeListLayout(content, 0)
+        MakePadding(content, 2, 6, 0, 0)
+
+        -- Section object (placeholder — components added in Phase 4)
+        local section = {
+            _name = name,
+            _frame = gb,
+            _content = content,
+            _tab = self,
+            _library = self._library,
+        }
+
+        -- If right side, clear current row so next left creates new row
+        if side == "Right" then
+            self._currentRow = nil
+        end
+
+        table.insert(self._sections, section)
+        return section
+    end
+
+    return windowObj
 end
 
 -- ================================================================
--- EXPOSE UTILITIES (for SaveManager/ThemeManager/Extensions)
+-- EXPOSE UTILITIES
 -- ================================================================
 
 Library.Tween       = Tween
@@ -1062,7 +1637,6 @@ Library.MakeListLayout    = MakeListLayout
 
 Library.ThemePresets = ThemePresets
 
--- Theme getter (returns current derived theme table)
 function Library.Theme()
     return Theme
 end
