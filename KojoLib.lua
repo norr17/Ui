@@ -1276,27 +1276,15 @@ function Library:CreateWindow(options)
         })
         MakePadding(tabFrame, 10, 10, 10, 10)
 
-        -- Grid layout for sections (two columns)
+        -- Two-column layout for sections
         local sectionGrid = Create("Frame", {
+            Name = "SectionGrid",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
             Parent = tabFrame,
         })
-        local gridLayout = Create("UIGridLayout", {
-            CellSize = UDim2.new(0.5, -6, 0, 0),
-            CellPaddingH = UDim.new(0, 12),
-            CellPaddingV = UDim.new(0, 10),
-            FillDirectionMaxCells = 2,
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            Parent = sectionGrid,
-        })
-        -- Override with auto-height cells by using a different approach
-        sectionGrid.AutomaticSize = Enum.AutomaticSize.Y
-        -- Remove grid, use horizontal list instead for proper auto-sizing
-        gridLayout:Destroy()
-
-        local columnLayout = Create("UIListLayout", {
+        Create("UIListLayout", {
             Padding = UDim.new(0, 10),
             FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Left,
@@ -1305,17 +1293,22 @@ function Library:CreateWindow(options)
             Parent = sectionGrid,
         })
 
-        -- Left and right columns
+        -- Left column
         local leftCol = Create("Frame", {
+            Name = "LeftCol",
             BackgroundTransparency = 1,
+            LayoutOrder = 1,
             Size = UDim2.new(0.5, -5, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
             Parent = sectionGrid,
         })
         MakeListLayout(leftCol, 10)
 
+        -- Right column
         local rightCol = Create("Frame", {
+            Name = "RightCol",
             BackgroundTransparency = 1,
+            LayoutOrder = 2,
             Size = UDim2.new(0.5, -5, 0, 0),
             AutomaticSize = Enum.AutomaticSize.Y,
             Parent = sectionGrid,
@@ -1384,12 +1377,13 @@ function Library:CreateWindow(options)
             })
             MakeRounded(sectionFrame, 10)
             MakeStroke(sectionFrame, Theme.SectionBorder, 1)
-            MakePadding(sectionFrame, 10, 12, 0, 0)
+            MakePadding(sectionFrame, 8, 10, 0, 0)
+            MakeListLayout(sectionFrame, 0)
 
             -- Section header
             local headerFrame = Create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 28),
+                Size = UDim2.new(1, 0, 0, 30),
                 Parent = sectionFrame,
             })
             MakePadding(headerFrame, 0, 0, 12, 12)
