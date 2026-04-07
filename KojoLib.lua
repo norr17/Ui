@@ -19,6 +19,23 @@
 --]]
 
 -- ============================================================
+-- EXECUTOR COMPATIBILITY SHIMS
+-- ============================================================
+
+local cloneref      = (cloneref or clonereference or function(i) return i end)
+local getgenv       = (getgenv or function() return shared end)
+local gethui        = (gethui or nil)
+local isfolder      = (isfolder or function() return false end)
+local isfile        = (isfile or function() return false end)
+local makefolder    = (makefolder or function() end)
+local writefile     = (writefile or function() end)
+local readfile      = (readfile or function() return "" end)
+local listfiles     = (listfiles or function() return {} end)
+local delfile       = (delfile or function() end)
+local protectgui    = (protectgui or function() end)
+local setclipboard  = (setclipboard or function() end)
+
+-- ============================================================
 -- SERVICES & GLOBALS
 -- ============================================================
 
@@ -42,15 +59,15 @@ Library.ShowCustomCursor = false
 Library.Unloaded = false
 Library._unloadCallbacks = {}
 
-local RunService     = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService   = game:GetService("TweenService")
-local Players        = game:GetService("Players")
-local HttpService    = game:GetService("HttpService")
-local CoreGui        = game:GetService("CoreGui")
-local TextService    = game:GetService("TextService")
+local RunService       = cloneref(game:GetService("RunService"))
+local UserInputService = cloneref(game:GetService("UserInputService"))
+local TweenService     = cloneref(game:GetService("TweenService"))
+local Players          = cloneref(game:GetService("Players"))
+local HttpService      = cloneref(game:GetService("HttpService"))
+local CoreGui          = cloneref(game:GetService("CoreGui"))
+local TextService      = cloneref(game:GetService("TextService"))
 
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local Mouse = LocalPlayer:GetMouse()
 
 -- ============================================================
@@ -952,6 +969,7 @@ function Library:Init()
         IgnoreGuiInset = true,
         Parent = gui,
     })
+    pcall(protectgui, screenGui)
     self._gui = screenGui
     return self
 end
