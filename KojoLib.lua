@@ -101,93 +101,81 @@ end
 -- ============================================================
 
 local Theme = {
-    -- Main backgrounds
-    Background        = Color3.fromRGB(15, 15, 18),
-    BackgroundSecond  = Color3.fromRGB(20, 20, 25),
-    WindowBorder      = Color3.fromRGB(35, 35, 42),
-    
-    -- Section / Card backgrounds
-    SectionBg         = Color3.fromRGB(22, 22, 28),
-    SectionBorder     = Color3.fromRGB(38, 38, 48),
-    
-    -- Sidebar
-    SidebarBg         = Color3.fromRGB(18, 18, 22),
-    SidebarActive     = Color3.fromRGB(28, 28, 36),
-    SidebarIcon       = Color3.fromRGB(130, 130, 155),
-    SidebarIconActive = Color3.fromRGB(220, 215, 235),
-    
-    -- Breadcrumb / Nav
-    BreadcrumbActive  = Color3.fromRGB(180, 155, 220),
-    BreadcrumbInactive= Color3.fromRGB(100, 100, 120),
-    BreadcrumbSep     = Color3.fromRGB(80, 80, 95),
-    
-    -- Toggle
-    ToggleOff         = Color3.fromRGB(50, 50, 62),
+    Background        = Color3.fromRGB(6, 6, 8),
+    BackgroundSecond  = Color3.fromRGB(2, 1, 10),
+    WindowBorder      = Color3.fromRGB(26, 26, 34),
+
+    SectionBg         = Color3.fromRGB(6, 5, 14),
+    SectionBorder     = Color3.fromRGB(14, 13, 26),
+
+    SidebarBg         = Color3.fromRGB(2, 1, 10),
+    SidebarActive     = Color3.fromRGB(148, 100, 220),
+    SidebarIcon       = Color3.fromRGB(40, 38, 58),
+    SidebarIconActive = Color3.fromRGB(148, 100, 220),
+
+    BreadcrumbActive  = Color3.fromRGB(148, 100, 220),
+    BreadcrumbInactive= Color3.fromRGB(58, 56, 88),
+    BreadcrumbSep     = Color3.fromRGB(24, 22, 42),
+
+    ToggleOff         = Color3.fromRGB(13, 12, 24),
     ToggleOn          = Color3.fromRGB(148, 100, 220),
-    ToggleOnBright    = Color3.fromRGB(165, 115, 240),
-    ToggleKnob        = Color3.fromRGB(235, 230, 245),
-    ToggleKnobOff     = Color3.fromRGB(120, 115, 135),
-    
-    -- Slider
-    SliderBg          = Color3.fromRGB(40, 38, 52),
+    ToggleOnBright    = Color3.fromRGB(148, 100, 220),
+    ToggleKnob        = Color3.fromRGB(240, 236, 250),
+    ToggleKnobOff     = Color3.fromRGB(56, 54, 90),
+    ToggleBorderOff   = Color3.fromRGB(28, 26, 46),
+
+    SliderBg          = Color3.fromRGB(16, 16, 26),
     SliderFill        = Color3.fromRGB(148, 100, 220),
-    SliderKnob        = Color3.fromRGB(220, 210, 240),
-    
-    -- Button
-    ButtonBg          = Color3.fromRGB(38, 36, 50),
-    ButtonBgHover     = Color3.fromRGB(55, 52, 72),
+    SliderKnob        = Color3.fromRGB(232, 228, 246),
+
+    ButtonBg          = Color3.fromRGB(7, 6, 15),
+    ButtonBgHover     = Color3.fromRGB(18, 16, 32),
     ButtonBgActive    = Color3.fromRGB(148, 100, 220),
-    ButtonBorder      = Color3.fromRGB(58, 55, 75),
-    
-    -- Dropdown
-    DropdownBg        = Color3.fromRGB(32, 30, 42),
-    DropdownBorder    = Color3.fromRGB(55, 52, 72),
-    DropdownItem      = Color3.fromRGB(28, 26, 38),
-    DropdownItemHover = Color3.fromRGB(42, 40, 56),
+    ButtonBorder      = Color3.fromRGB(24, 23, 42),
+
+    DropdownBg        = Color3.fromRGB(7, 6, 15),
+    DropdownBorder    = Color3.fromRGB(24, 23, 42),
+    DropdownItem      = Color3.fromRGB(4, 3, 11),
+    DropdownItemHover = Color3.fromRGB(12, 10, 22),
     DropdownSelected  = Color3.fromRGB(148, 100, 220),
-    
-    -- TextBox
-    InputBg           = Color3.fromRGB(30, 28, 40),
-    InputBorder       = Color3.fromRGB(52, 50, 68),
+
+    InputBg           = Color3.fromRGB(7, 6, 15),
+    InputBorder       = Color3.fromRGB(24, 23, 42),
     InputBorderFocus  = Color3.fromRGB(148, 100, 220),
-    
-    -- Text colors
-    TextPrimary       = Color3.fromRGB(225, 222, 238),
-    TextSecondary     = Color3.fromRGB(155, 150, 175),
-    TextDisabled      = Color3.fromRGB(90, 88, 105),
-    TextAccent        = Color3.fromRGB(175, 140, 235),
-    
-    -- Accent
+
+    TextPrimary       = Color3.fromRGB(232, 228, 246),
+    TextSecondary     = Color3.fromRGB(90, 88, 117),
+    TextDisabled      = Color3.fromRGB(28, 26, 44),
+    TextAccent        = Color3.fromRGB(148, 100, 220),
+
     Accent            = Color3.fromRGB(148, 100, 220),
     AccentLight       = Color3.fromRGB(175, 130, 245),
     AccentDark        = Color3.fromRGB(110, 72, 175),
-    
-    -- Notification
-    NotifBg           = Color3.fromRGB(25, 24, 32),
-    NotifBorder       = Color3.fromRGB(148, 100, 220),
+
+    NotifBg           = Color3.fromRGB(5, 4, 12),
+    NotifBorder       = Color3.fromRGB(16, 16, 30),
     NotifSuccess      = Color3.fromRGB(80, 200, 120),
     NotifWarning      = Color3.fromRGB(240, 180, 60),
     NotifError        = Color3.fromRGB(220, 75, 75),
     NotifInfo         = Color3.fromRGB(85, 175, 235),
-    
-    -- Keybind
-    KeybindBg         = Color3.fromRGB(35, 33, 46),
-    KeybindBorder     = Color3.fromRGB(60, 57, 78),
-    
-    -- Loading
-    LoadingBg         = Color3.fromRGB(12, 12, 16),
-    LoadingProgressBg = Color3.fromRGB(35, 33, 46),
+
+    KeybindBg         = Color3.fromRGB(7, 6, 15),
+    KeybindBorder     = Color3.fromRGB(24, 23, 42),
+
+    LoadingBg         = Color3.fromRGB(3, 2, 10),
+    LoadingProgressBg = Color3.fromRGB(12, 11, 24),
     LoadingProgressFill = Color3.fromRGB(148, 100, 220),
-    
-    -- Scrollbar
-    ScrollBg          = Color3.fromRGB(30, 28, 40),
-    ScrollBar         = Color3.fromRGB(75, 70, 95),
-    
-    -- Separator
-    Separator         = Color3.fromRGB(35, 33, 46),
-    
-    -- Shadow
-    Shadow            = Color3.fromRGB(5, 5, 8),
+
+    ScrollBg          = Color3.fromRGB(10, 9, 18),
+    ScrollBar         = Color3.fromRGB(26, 24, 40),
+
+    Separator         = Color3.fromRGB(12, 11, 22),
+
+    Shadow            = Color3.fromRGB(0, 0, 0),
+
+    SubTabBar         = Color3.fromRGB(1, 0, 10),
+    SubTabActive      = Color3.fromRGB(148, 100, 220),
+    SubTabInactive    = Color3.fromRGB(40, 38, 58),
 }
 
 -- Font constants
@@ -345,7 +333,6 @@ local function MakeGridLayout(parent, cellSize, padding)
     })
 end
 
--- Auto-resize frame based on UIListLayout content
 local function AutoSize(frame, layout, minHeight, axis)
     axis = axis or "Y"
     local function update()
@@ -369,6 +356,27 @@ local function AutoSize(frame, layout, minHeight, axis)
     end
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
     update()
+end
+
+local function BindHeightToLayout(frame, layout, paddingY)
+    paddingY = paddingY or 0
+    local function update()
+        local h = layout.AbsoluteContentSize.Y + paddingY
+        frame.Size = UDim2.new(frame.Size.X.Scale, frame.Size.X.Offset, 0, math.max(h, 1))
+    end
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
+    task.defer(update)
+    return update
+end
+
+local function BindCanvasToLayout(scrollFrame, layout, paddingY)
+    paddingY = paddingY or 0
+    local function update()
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + paddingY)
+    end
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(update)
+    task.defer(update)
+    return update
 end
 
 local function PointInGui(guiObject, point)
@@ -649,7 +657,7 @@ function Library:Notify(options)
         Parent = NotificationHolder,
     })
     MakeRounded(notif, 8)
-    MakeStroke(notif, Theme.WindowBorder, 1)
+    MakeStroke(notif, Theme.NotifBorder, 1)
 
     -- Left accent bar
     local accentBar = Create("Frame", {
@@ -1261,7 +1269,6 @@ function Library:CreateWindow(options)
             Tween(sidebarBtn, TweenInfo.new(0.15), { BackgroundTransparency = 1 })
         end)
 
-        -- Tab frame (scrollable content)
         local tabFrame = Create("ScrollingFrame", {
             Name = "Tab_" .. name,
             BackgroundTransparency = 1,
@@ -1270,22 +1277,20 @@ function Library:CreateWindow(options)
             ScrollBarThickness = 3,
             ScrollBarImageColor3 = Theme.ScrollBar,
             CanvasSize = UDim2.new(0, 0, 0, 0),
-            AutomaticCanvasSize = Enum.AutomaticCanvasSize.Y,
+            ScrollingDirection = Enum.ScrollingDirection.Y,
             Visible = false,
             Parent = tabViewport,
         })
-        MakePadding(tabFrame, 10, 10, 10, 10)
+        MakePadding(tabFrame, 8, 8, 8, 8)
 
-        -- Two-column layout for sections
         local sectionGrid = Create("Frame", {
             Name = "SectionGrid",
             BackgroundTransparency = 1,
             Size = UDim2.new(1, 0, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
             Parent = tabFrame,
         })
-        Create("UIListLayout", {
-            Padding = UDim.new(0, 10),
+        local gridLayout = Create("UIListLayout", {
+            Padding = UDim.new(0, 8),
             FillDirection = Enum.FillDirection.Horizontal,
             HorizontalAlignment = Enum.HorizontalAlignment.Left,
             VerticalAlignment = Enum.VerticalAlignment.Top,
@@ -1293,27 +1298,38 @@ function Library:CreateWindow(options)
             Parent = sectionGrid,
         })
 
-        -- Left column
         local leftCol = Create("Frame", {
             Name = "LeftCol",
             BackgroundTransparency = 1,
             LayoutOrder = 1,
-            Size = UDim2.new(0.5, -5, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
+            Size = UDim2.new(0.5, -4, 0, 0),
             Parent = sectionGrid,
         })
-        MakeListLayout(leftCol, 10)
+        local leftLayout = MakeListLayout(leftCol, 8)
 
-        -- Right column
         local rightCol = Create("Frame", {
             Name = "RightCol",
             BackgroundTransparency = 1,
             LayoutOrder = 2,
-            Size = UDim2.new(0.5, -5, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
+            Size = UDim2.new(0.5, -4, 0, 0),
             Parent = sectionGrid,
         })
-        MakeListLayout(rightCol, 10)
+        local rightLayout = MakeListLayout(rightCol, 8)
+
+        BindHeightToLayout(leftCol, leftLayout, 0)
+        BindHeightToLayout(rightCol, rightLayout, 0)
+
+        local function updateGridHeight()
+            local lh = leftCol.AbsoluteSize.Y
+            local rh = rightCol.AbsoluteSize.Y
+            local h = math.max(lh, rh)
+            sectionGrid.Size = UDim2.new(1, 0, 0, math.max(h, 1))
+        end
+        leftCol:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGridHeight)
+        rightCol:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGridHeight)
+        task.defer(updateGridHeight)
+
+        BindCanvasToLayout(tabFrame, gridLayout, 24)
 
         local tabObj = {
             _name       = name,
@@ -1369,63 +1385,57 @@ function Library:CreateWindow(options)
             local sectionFrame = Create("Frame", {
                 Name = "Section_" .. sectionName,
                 BackgroundColor3 = Theme.SectionBg,
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
+                Size = UDim2.new(1, 0, 0, 40),
                 LayoutOrder = self._sectionCount,
                 ClipsDescendants = false,
                 Parent = parent,
             })
-            MakeRounded(sectionFrame, 10)
+            MakeRounded(sectionFrame, 8)
             MakeStroke(sectionFrame, Theme.SectionBorder, 1)
-            MakePadding(sectionFrame, 8, 10, 0, 0)
-            MakeListLayout(sectionFrame, 0)
 
-            -- Section header
             local headerFrame = Create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 30),
+                Position = UDim2.new(0, 0, 0, 0),
+                Size = UDim2.new(1, 0, 0, 32),
                 Parent = sectionFrame,
-            })
-            MakePadding(headerFrame, 0, 0, 12, 12)
-
-            -- Section icon
-            local sectionIcon = Create("ImageLabel", {
-                BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0.5, -8),
-                Size = UDim2.new(0, 16, 0, 16),
-                Image = "rbxassetid://4483362458",
-                ImageColor3 = Theme.TextSecondary,
-                Parent = headerFrame,
             })
 
             local sectionTitle = Create("TextLabel", {
                 Text = sectionName,
-                Font = Font.SemiBold,
-                TextSize = 13,
+                Font = Font.Bold,
+                TextSize = 12,
                 TextColor3 = Theme.TextPrimary,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 22, 0, 6),
-                Size = UDim2.new(1, -22, 0, 18),
+                Position = UDim2.new(0, 12, 0, 0),
+                Size = UDim2.new(1, -24, 1, 0),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = headerFrame,
             })
 
-            -- Separator line
             local sep = Create("Frame", {
                 BackgroundColor3 = Theme.Separator,
+                Position = UDim2.new(0, 0, 0, 32),
                 Size = UDim2.new(1, 0, 0, 1),
                 Parent = sectionFrame,
             })
 
-            -- Element list
             local elemList = Create("Frame", {
                 BackgroundTransparency = 1,
+                Position = UDim2.new(0, 0, 0, 33),
                 Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
                 Parent = sectionFrame,
             })
-            MakePadding(elemList, 4, 4, 0, 0)
-            MakeListLayout(elemList, 2)
+            local elemPadding = MakePadding(elemList, 2, 6, 0, 0)
+            local elemLayout = MakeListLayout(elemList, 0)
+
+            BindHeightToLayout(elemList, elemLayout, 8)
+
+            local function updateSectionHeight()
+                local contentH = elemList.AbsoluteSize.Y
+                sectionFrame.Size = UDim2.new(1, 0, 0, 33 + contentH)
+            end
+            elemList:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateSectionHeight)
+            task.defer(updateSectionHeight)
 
             local sectionObj = {
                 _frame    = sectionFrame,
@@ -1511,7 +1521,7 @@ function Library:CreateWindow(options)
                     Parent = row,
                 })
                 MakeRounded(trackBg, 10)
-                MakeStroke(trackBg, value and Theme.ToggleOnBright or Theme.SectionBorder, 1)
+                MakeStroke(trackBg, value and Theme.ToggleOnBright or Theme.ToggleBorderOff, 1)
 
                 local knob = Create("Frame", {
                     AnchorPoint = Vector2.new(0, 0.5),
@@ -1536,7 +1546,7 @@ function Library:CreateWindow(options)
                     -- Stroke update
                     local stroke = trackBg:FindFirstChildWhichIsA("UIStroke")
                     if stroke then
-                        stroke.Color = v and Theme.ToggleOnBright or Theme.SectionBorder
+                        stroke.Color = v and Theme.ToggleOnBright or Theme.ToggleBorderOff
                     end
                     if not skipCallback then
                         callback(v)
@@ -1885,7 +1895,6 @@ function Library:CreateWindow(options)
                 local row = Create("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 22),
-                    AutomaticSize = Enum.AutomaticSize.Y,
                     Parent = elemList,
                 })
                 MakePadding(row, 2, 2, 12, 12)
@@ -1897,7 +1906,6 @@ function Library:CreateWindow(options)
                     TextColor3 = color,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 18),
-                    AutomaticSize = Enum.AutomaticSize.Y,
                     TextXAlignment = Enum.TextXAlignment.Left,
                     TextWrapped = wrapFlag,
                     RichText = rich,
@@ -3053,29 +3061,34 @@ function Library:CreateWindow(options)
             local host = Create("Frame", {
                 Name = "Tabbox",
                 BackgroundColor3 = Theme.SectionBg,
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
+                Size = UDim2.new(1, 0, 0, 60),
                 ClipsDescendants = false,
                 Parent = parent,
             })
-            MakeRounded(host, 10)
+            MakeRounded(host, 8)
             MakeStroke(host, Theme.SectionBorder, 1)
-            MakePadding(host, 10, 12, 10, 10)
 
             local header = Create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 24),
+                Position = UDim2.new(0, 10, 0, 8),
+                Size = UDim2.new(1, -20, 0, 24),
                 Parent = host,
             })
             local headerLayout = MakeListLayout(header, 6, Enum.FillDirection.Horizontal)
 
             local pages = Create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 0),
-                AutomaticSize = Enum.AutomaticSize.Y,
+                Position = UDim2.new(0, 10, 0, 40),
+                Size = UDim2.new(1, -20, 0, 0),
                 Parent = host,
             })
-            MakePadding(pages, 8, 0, 0, 0)
+
+            local function updateHostHeight()
+                local contentH = pages.AbsoluteSize.Y
+                host.Size = UDim2.new(1, 0, 0, 40 + contentH + 12)
+            end
+            pages:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateHostHeight)
+            task.defer(updateHostHeight)
 
             local tabbox = {
                 _host = host,
@@ -3103,6 +3116,12 @@ function Library:CreateWindow(options)
                 proxy._frame.Parent = pages
                 proxy._frame.Visible = false
 
+                proxy._frame:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+                    if tabbox._active == proxy then
+                        pages.Size = UDim2.new(1, -20, 0, proxy._frame.AbsoluteSize.Y)
+                    end
+                end)
+
                 local function selectPage()
                     for _, page in ipairs(tabbox._pages) do
                         page.section._frame.Visible = false
@@ -3113,6 +3132,7 @@ function Library:CreateWindow(options)
                     button.BackgroundColor3 = Theme.Accent
                     button.TextColor3 = Theme.ToggleKnob
                     tabbox._active = proxy
+                    pages.Size = UDim2.new(1, -20, 0, proxy._frame.AbsoluteSize.Y)
                 end
 
                 button.MouseButton1Click:Connect(selectPage)
@@ -4125,7 +4145,6 @@ Library._buildRadioGroup = function(parent, label, opts)
     local container = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 58),
-        AutomaticSize = Enum.AutomaticSize.Y,
         Parent = parent,
     })
     MakePadding(container, 4, 4, 12, 12)
@@ -4286,8 +4305,7 @@ function Library:CreateContextMenu(opts)
 
     local menu = Create("Frame", {
         BackgroundColor3 = Theme.DropdownBg,
-        Size = UDim2.new(0, 160, 0, 0),
-        AutomaticSize = Enum.AutomaticSize.Y,
+        Size = UDim2.new(0, 160, 0, 8),
         Visible = false,
         ZIndex = 9000,
         Parent = self._gui,
@@ -4296,7 +4314,8 @@ function Library:CreateContextMenu(opts)
     MakeStroke(menu, Theme.DropdownBorder, 1)
     AddDropShadow(menu, 10, 0.6)
     MakePadding(menu, 4, 4, 0, 0)
-    MakeListLayout(menu, 2)
+    local menuLayout = MakeListLayout(menu, 2)
+    BindHeightToLayout(menu, menuLayout, 8)
 
     local function BuildItems()
         for _, c in pairs(menu:GetChildren()) do
