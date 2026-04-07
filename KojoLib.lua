@@ -780,7 +780,7 @@ function Library:CreateLoading(options)
         ZIndex = 2,
         Parent = screenGui,
     })
-    MakeRounded(window, 12)
+    MakeRounded(window, 14)
     MakeStroke(window, Theme.WindowBorder, 1)
     AddDropShadow(window, 20, 0.5)
     MakePadding(window, 28, 28, 32, 32)
@@ -985,8 +985,8 @@ end
 function Library:CreateWindow(options)
     options = options or {}
     local title    = options.Title or "Kojo Hub"
-    local width    = options.Width or 780
-    local height   = options.Height or 520
+    local width    = options.Width or 760
+    local height   = options.Height or 560
     local tabs     = options.Tabs or {}
     local icon     = options.Icon or nil
 
@@ -996,63 +996,92 @@ function Library:CreateWindow(options)
 
     local gui = self._gui
 
-    -- Main window frame
     local windowFrame = Create("Frame", {
         Name = "Window",
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Theme.Background,
         Position = UDim2.new(0.5, 0, 0.5, 0),
         Size = UDim2.new(0, width, 0, height),
-        ClipsDescendants = false,
+        ClipsDescendants = true,
         Parent = gui,
     })
-    MakeRounded(windowFrame, 12)
+    MakeRounded(windowFrame, 10)
     MakeStroke(windowFrame, Theme.WindowBorder, 1)
     AddDropShadow(windowFrame, 25, 0.45)
 
-    -- Sidebar (left)
-    local sidebar = Create("Frame", {
-        Name = "Sidebar",
-        BackgroundColor3 = Theme.SidebarBg,
-        Size = UDim2.new(0, 52, 1, 0),
+    local titleBar = Create("Frame", {
+        Name = "TitleBar",
+        BackgroundColor3 = Theme.BackgroundSecond,
+        Size = UDim2.new(1, 0, 0, 40),
         ClipsDescendants = true,
         Parent = windowFrame,
     })
-    local sidebarCorner = Create("UICorner", {
-        CornerRadius = UDim.new(0, 12),
-        Parent = sidebar,
-    })
-    -- Override right corners to be square
-    local sidebarRight = Create("Frame", {
-        BackgroundColor3 = Theme.SidebarBg,
-        Position = UDim2.new(1, -12, 0, 0),
-        Size = UDim2.new(0, 12, 1, 0),
-        Parent = sidebar,
-    })
-    MakeStroke(sidebar, Theme.WindowBorder, 1)
 
-    -- Logo / icon at top of sidebar
-    local logoFrame = Create("Frame", {
+    local logoSection = Create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 10),
-        Size = UDim2.new(1, 0, 0, 52),
-        Parent = sidebar,
+        Size = UDim2.new(0, 46, 1, 0),
+        Parent = titleBar,
     })
     local logoIcon = Create("ImageLabel", {
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
         Position = UDim2.new(0.5, 0, 0.5, 0),
-        Size = UDim2.new(0, 28, 0, 28),
+        Size = UDim2.new(0, 22, 0, 22),
         Image = icon or "rbxassetid://4483362458",
         ImageColor3 = Theme.Accent,
-        Parent = logoFrame,
+        Parent = logoSection,
+    })
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, 4),
+        Size = UDim2.new(0, 1, 1, -8),
+        Parent = logoSection,
     })
 
-    -- Tab icon list in sidebar
+    local breadcrumbContainer = Create("Frame", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 56, 0, 0),
+        Size = UDim2.new(1, -56, 1, 0),
+        Parent = titleBar,
+    })
+    local breadcrumbLayout = Create("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        FillDirection = Enum.FillDirection.Horizontal,
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Center,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = breadcrumbContainer,
+    })
+
+    MakeDraggable(windowFrame, titleBar)
+
+    local bodyFrame = Create("Frame", {
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, 40),
+        Size = UDim2.new(1, 0, 1, -40),
+        Parent = windowFrame,
+    })
+
+    local sidebar = Create("Frame", {
+        Name = "Sidebar",
+        BackgroundColor3 = Theme.SidebarBg,
+        Size = UDim2.new(0, 46, 1, 0),
+        ClipsDescendants = true,
+        Parent = bodyFrame,
+    })
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        AnchorPoint = Vector2.new(1, 0),
+        Position = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(0, 1, 1, 0),
+        Parent = sidebar,
+    })
+
     local sidebarTabList = Create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 72),
-        Size = UDim2.new(1, 0, 1, -72),
+        Position = UDim2.new(0, 0, 0, 0),
+        Size = UDim2.new(1, 0, 1, 0),
         Parent = sidebar,
     })
     local sidebarLayout = Create("UIListLayout", {
@@ -1063,82 +1092,62 @@ function Library:CreateWindow(options)
         Parent = sidebarTabList,
     })
     Create("UIPadding", {
-        PaddingTop = UDim.new(0, 4),
+        PaddingTop = UDim.new(0, 8),
         Parent = sidebarTabList,
     })
 
-    -- Right content area
     local contentArea = Create("Frame", {
         Name = "ContentArea",
         BackgroundColor3 = Theme.Background,
-        Position = UDim2.new(0, 52, 0, 0),
-        Size = UDim2.new(1, -52, 1, 0),
+        Position = UDim2.new(0, 46, 0, 0),
+        Size = UDim2.new(1, -46, 1, 0),
         ClipsDescendants = true,
-        Parent = windowFrame,
-    })
-    local contentCorner = Create("UICorner", {
-        CornerRadius = UDim.new(0, 12),
-        Parent = contentArea,
-    })
-    -- Square left corners
-    Create("Frame", {
-        BackgroundColor3 = Theme.Background,
-        Size = UDim2.new(0, 12, 1, 0),
-        Parent = contentArea,
+        Parent = bodyFrame,
     })
 
-    -- Header bar (breadcrumb)
-    local headerBar = Create("Frame", {
-        Name = "HeaderBar",
-        BackgroundColor3 = Theme.BackgroundSecond,
-        Size = UDim2.new(1, 0, 0, 44),
+    local subtabBar = Create("Frame", {
+        Name = "SubtabBar",
+        BackgroundColor3 = Theme.SubTabBar,
+        Size = UDim2.new(1, 0, 0, 34),
         ClipsDescendants = true,
         Parent = contentArea,
     })
-    -- Square bottom corners
     Create("Frame", {
-        BackgroundColor3 = Theme.BackgroundSecond,
-        Position = UDim2.new(0, 0, 1, -12),
-        Size = UDim2.new(1, 0, 0, 12),
-        Parent = headerBar,
+        BackgroundColor3 = Theme.WindowBorder,
+        Position = UDim2.new(0, 0, 1, -1),
+        Size = UDim2.new(1, 0, 0, 1),
+        Parent = subtabBar,
     })
-    MakeStroke(headerBar, Theme.WindowBorder, 1)
-
-    -- Breadcrumb container
-    local breadcrumbContainer = Create("Frame", {
+    local subtabContainer = Create("Frame", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 14, 0, 0),
-        Size = UDim2.new(1, -14, 1, 0),
-        Parent = headerBar,
+        Position = UDim2.new(0, 6, 0, 0),
+        Size = UDim2.new(1, -6, 1, 0),
+        Parent = subtabBar,
     })
-    local breadcrumbLayout = Create("UIListLayout", {
-        Padding = UDim.new(0, 4),
+    local subtabLayout = Create("UIListLayout", {
+        Padding = UDim.new(0, 0),
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Left,
         VerticalAlignment = Enum.VerticalAlignment.Center,
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Parent = breadcrumbContainer,
+        Parent = subtabContainer,
     })
 
-    -- Tab content area
     local tabViewport = Create("Frame", {
         Name = "TabViewport",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 44),
-        Size = UDim2.new(1, 0, 1, -44),
+        Position = UDim2.new(0, 0, 0, 34),
+        Size = UDim2.new(1, 0, 1, -34),
         ClipsDescendants = true,
         Parent = contentArea,
     })
 
-    -- Make draggable via header
-    MakeDraggable(windowFrame, headerBar)
-
-    -- Window object
     local windowObj = setmetatable({}, WindowClass)
     windowObj._frame       = windowFrame
     windowObj._sidebar     = sidebar
     windowObj._sidebarTabList = sidebarTabList
     windowObj._breadcrumb  = breadcrumbContainer
+    windowObj._subtabContainer = subtabContainer
     windowObj._tabViewport = tabViewport
     windowObj._tabs        = {}
     windowObj._activeTab   = nil
@@ -1146,20 +1155,17 @@ function Library:CreateWindow(options)
     windowObj._title       = title
     windowObj.Tabs         = {}
 
-    -- Build breadcrumb for a tab and its sub-tabs
     function windowObj:_BuildBreadcrumb(tabObj)
-        -- Clear existing
         for _, c in pairs(breadcrumbContainer:GetChildren()) do
             if c:IsA("TextLabel") or c:IsA("TextButton") or c:IsA("Frame") then
                 c:Destroy()
             end
         end
 
-        -- Hub name (root)
-        local rootLabel = Create("TextLabel", {
-            Text = "> " .. title,
+        Create("TextLabel", {
+            Text = title,
             Font = Font.SemiBold,
-            TextSize = 12,
+            TextSize = 11,
             TextColor3 = Theme.BreadcrumbInactive,
             BackgroundTransparency = 1,
             Size = UDim2.new(0, 0, 1, 0),
@@ -1167,30 +1173,60 @@ function Library:CreateWindow(options)
             Parent = breadcrumbContainer,
         })
 
-        -- Each tab as breadcrumb segment
-        for i, t in ipairs(self._tabs) do
-            local sep = Create("TextLabel", {
-                Text = "/",
-                Font = Font.Regular,
-                TextSize = 12,
-                TextColor3 = Theme.BreadcrumbSep,
-                BackgroundTransparency = 1,
-                Size = UDim2.new(0, 14, 1, 0),
-                Parent = breadcrumbContainer,
-            })
+        Create("TextLabel", {
+            Text = "›",
+            Font = Font.Regular,
+            TextSize = 11,
+            TextColor3 = Theme.BreadcrumbSep,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 8, 1, 0),
+            Parent = breadcrumbContainer,
+        })
 
+        Create("TextLabel", {
+            Text = tabObj._name,
+            Font = Font.Bold,
+            TextSize = 11,
+            TextColor3 = Theme.BreadcrumbActive,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 0, 1, 0),
+            AutomaticSize = Enum.AutomaticSize.X,
+            Parent = breadcrumbContainer,
+        })
+    end
+
+    function windowObj:_BuildSubtabs(tabObj)
+        for _, c in pairs(subtabContainer:GetChildren()) do
+            if c:IsA("TextButton") or c:IsA("Frame") then
+                c:Destroy()
+            end
+        end
+
+        for _, t in ipairs(self._tabs) do
             local isActive = t == tabObj
-            local crumb = Create("TextButton", {
+            local btn = Create("TextButton", {
                 Text = t._name,
-                Font = isActive and Font.SemiBold or Font.Regular,
-                TextSize = 12,
-                TextColor3 = isActive and Theme.BreadcrumbActive or Theme.BreadcrumbInactive,
+                Font = isActive and Font.Bold or Font.Regular,
+                TextSize = 11,
+                TextColor3 = isActive and Theme.SubTabActive or Theme.SubTabInactive,
                 BackgroundTransparency = 1,
                 Size = UDim2.new(0, 0, 1, 0),
                 AutomaticSize = Enum.AutomaticSize.X,
-                Parent = breadcrumbContainer,
+                Parent = subtabContainer,
             })
-            crumb.MouseButton1Click:Connect(function()
+            MakePadding(btn, 0, 0, 12, 12)
+
+            if isActive then
+                Create("Frame", {
+                    BackgroundColor3 = Theme.SubTabActive,
+                    AnchorPoint = Vector2.new(0, 1),
+                    Position = UDim2.new(0, 0, 1, 0),
+                    Size = UDim2.new(1, 0, 0, 2),
+                    Parent = btn,
+                })
+            end
+
+            btn.MouseButton1Click:Connect(function()
                 self:_SelectTab(t)
             end)
         end
@@ -1198,23 +1234,26 @@ function Library:CreateWindow(options)
 
     function windowObj:_SelectTab(tabObj)
         if self._activeTab == tabObj then return end
-        -- Hide all tab frames
         for _, t in ipairs(self._tabs) do
             t._frame.Visible = false
             if t._sidebarBtn then
                 t._sidebarBtn.BackgroundTransparency = 1
                 t._sidebarIcon.ImageColor3 = Theme.SidebarIcon
+                local stroke = t._sidebarBtn:FindFirstChildWhichIsA("UIStroke")
+                if stroke then stroke.Transparency = 1 end
             end
         end
-        -- Show selected
         tabObj._frame.Visible = true
         self._activeTab = tabObj
         if tabObj._sidebarBtn then
-            tabObj._sidebarBtn.BackgroundColor3 = Theme.SidebarActive
-            tabObj._sidebarBtn.BackgroundTransparency = 0
-            tabObj._sidebarIcon.ImageColor3 = Theme.SidebarIconActive
+            tabObj._sidebarBtn.BackgroundColor3 = Theme.Accent
+            tabObj._sidebarBtn.BackgroundTransparency = 0.8
+            tabObj._sidebarIcon.ImageColor3 = Theme.Accent
+            local stroke = tabObj._sidebarBtn:FindFirstChildWhichIsA("UIStroke")
+            if stroke then stroke.Transparency = 0.6 end
         end
         self:_BuildBreadcrumb(tabObj)
+        self:_BuildSubtabs(tabObj)
     end
 
     function windowObj:AddTab(name, iconId)
@@ -1223,25 +1262,27 @@ function Library:CreateWindow(options)
         -- Sidebar button
         local sidebarBtn = Create("TextButton", {
             Name = "SidebarBtn_" .. name,
-            BackgroundColor3 = Theme.SidebarActive,
+            BackgroundColor3 = Theme.Accent,
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, 38, 0, 38),
+            Size = UDim2.new(0, 36, 0, 36),
             Text = "",
             Parent = sidebarTabList,
         })
         MakeRounded(sidebarBtn, 8)
+        MakeStroke(sidebarBtn, Theme.Accent, 1)
+        local sidebarStroke = sidebarBtn:FindFirstChildWhichIsA("UIStroke")
+        if sidebarStroke then sidebarStroke.Transparency = 1 end
 
         local sidebarIcon = Create("ImageLabel", {
             AnchorPoint = Vector2.new(0.5, 0.5),
             BackgroundTransparency = 1,
             Position = UDim2.new(0.5, 0, 0.5, 0),
-            Size = UDim2.new(0, 20, 0, 20),
+            Size = UDim2.new(0, 18, 0, 18),
             Image = iconId,
             ImageColor3 = Theme.SidebarIcon,
             Parent = sidebarBtn,
         })
 
-        -- Tooltip
         local tooltip = Create("TextLabel", {
             AnchorPoint = Vector2.new(0, 0.5),
             BackgroundColor3 = Theme.NotifBg,
@@ -1261,12 +1302,17 @@ function Library:CreateWindow(options)
 
         sidebarBtn.MouseEnter:Connect(function()
             tooltip.Visible = true
-            Tween(sidebarBtn, TweenInfo.new(0.15), { BackgroundTransparency = 0.6 })
+            if not (self._activeTab and self._activeTab._sidebarBtn == sidebarBtn) then
+                Tween(sidebarBtn, TweenInfo.new(0.15), { BackgroundTransparency = 0.92 })
+                sidebarIcon.ImageColor3 = Theme.TextSecondary
+            end
         end)
         sidebarBtn.MouseLeave:Connect(function()
             tooltip.Visible = false
-            if self._activeTab and self._activeTab._sidebarBtn == sidebarBtn then return end
-            Tween(sidebarBtn, TweenInfo.new(0.15), { BackgroundTransparency = 1 })
+            if not (self._activeTab and self._activeTab._sidebarBtn == sidebarBtn) then
+                Tween(sidebarBtn, TweenInfo.new(0.15), { BackgroundTransparency = 1 })
+                sidebarIcon.ImageColor3 = Theme.SidebarIcon
+            end
         end)
 
         local tabFrame = Create("ScrollingFrame", {
@@ -1496,41 +1542,40 @@ function Library:CreateWindow(options)
 
                 local row = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(row, 0, 0, 12, 12)
+                MakePadding(row, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, -52, 1, 0),
+                    Size = UDim2.new(1, -46, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = row,
                 })
 
-                -- Toggle track
                 local trackBg = Create("Frame", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = value and Theme.ToggleOn or Theme.ToggleOff,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 38, 0, 20),
+                    Size = UDim2.new(0, 34, 0, 18),
                     Parent = row,
                 })
-                MakeRounded(trackBg, 10)
+                MakeRounded(trackBg, 9)
                 MakeStroke(trackBg, value and Theme.ToggleOnBright or Theme.ToggleBorderOff, 1)
 
                 local knob = Create("Frame", {
                     AnchorPoint = Vector2.new(0, 0.5),
                     BackgroundColor3 = value and Theme.ToggleKnob or Theme.ToggleKnobOff,
-                    Position = value and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
-                    Size = UDim2.new(0, 14, 0, 14),
+                    Position = value and UDim2.new(1, -15, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
+                    Size = UDim2.new(0, 12, 0, 12),
                     Parent = trackBg,
                 })
-                MakeRounded(knob, 7)
+                MakeRounded(knob, 6)
 
                 local toggleObj
                 local function SetToggle(v, skipCallback)
@@ -1540,7 +1585,7 @@ function Library:CreateWindow(options)
                         BackgroundColor3 = v and Theme.ToggleOn or Theme.ToggleOff,
                     })
                     Tween(knob, TweenInfo.new(0.18, Enum.EasingStyle.Quart), {
-                        Position = v and UDim2.new(1, -18, 0.5, 0) or UDim2.new(0, 2, 0.5, 0),
+                        Position = v and UDim2.new(1, -15, 0.5, 0) or UDim2.new(0, 3, 0.5, 0),
                         BackgroundColor3 = v and Theme.ToggleKnob or Theme.ToggleKnobOff,
                     })
                     -- Stroke update
@@ -1567,7 +1612,7 @@ function Library:CreateWindow(options)
                     end)
                     btn.MouseEnter:Connect(function()
                         Tween(row, TweenInfo.new(0.1), { BackgroundTransparency = 0.92 })
-                        row.BackgroundColor3 = Theme.SidebarActive
+                        row.BackgroundColor3 = Theme.Accent
                     end)
                     btn.MouseLeave:Connect(function()
                         row.BackgroundTransparency = 1
@@ -1634,12 +1679,11 @@ function Library:CreateWindow(options)
 
                 local container = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 44),
+                    Size = UDim2.new(1, 0, 0, 40),
                     Parent = elemList,
                 })
-                MakePadding(container, 0, 0, 12, 12)
+                MakePadding(container, 0, 0, 10, 10)
 
-                -- Top row: label + value
                 local topRow = Create("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 18),
@@ -1650,7 +1694,7 @@ function Library:CreateWindow(options)
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -50, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -1670,31 +1714,30 @@ function Library:CreateWindow(options)
                     Parent = topRow,
                 })
 
-                -- Slider track
                 local track = Create("Frame", {
                     BackgroundColor3 = Theme.SliderBg,
                     Position = UDim2.new(0, 0, 0, 22),
-                    Size = UDim2.new(1, 0, 0, 5),
+                    Size = UDim2.new(1, 0, 0, 4),
                     Parent = container,
                 })
-                MakeRounded(track, 3)
+                MakeRounded(track, 2)
 
                 local fill = Create("Frame", {
                     BackgroundColor3 = disabled and Theme.ToggleOff or Theme.SliderFill,
                     Size = UDim2.new((value - min) / (max - min), 0, 1, 0),
                     Parent = track,
                 })
-                MakeRounded(fill, 3)
+                MakeRounded(fill, 2)
 
                 local knob = Create("Frame", {
                     AnchorPoint = Vector2.new(0.5, 0.5),
                     BackgroundColor3 = disabled and Theme.TextDisabled or Theme.SliderKnob,
                     Position = UDim2.new((value - min) / (max - min), 0, 0.5, 0),
-                    Size = UDim2.new(0, 14, 0, 14),
+                    Size = UDim2.new(0, 12, 0, 12),
                     Parent = track,
                 })
-                MakeRounded(knob, 7)
-                MakeStroke(knob, Theme.SliderFill, 1.5)
+                MakeRounded(knob, 6)
+                MakeStroke(knob, Theme.SliderFill, 2)
 
                 local sliderObj
                 local function SetSlider(v, skipCallback)
@@ -1795,16 +1838,16 @@ function Library:CreateWindow(options)
 
                 local row = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 30),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(row, 0, 0, 12, 12)
+                MakePadding(row, 0, 0, 10, 10)
 
                 local btn = Create("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = bgColor,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 96, 0, 24),
+                    Size = UDim2.new(0, 96, 0, 22),
                     Text = label,
                     Font = Font.Regular,
                     TextSize = 11,
@@ -1812,7 +1855,7 @@ function Library:CreateWindow(options)
                     AutoButtonColor = false,
                     Parent = row,
                 })
-                MakeRounded(btn, 6)
+                MakeRounded(btn, 5)
                 MakeStroke(btn, Theme.ButtonBorder, 1)
                 local clickArmed = false
 
@@ -1827,7 +1870,7 @@ function Library:CreateWindow(options)
                         Tween(btn, TweenInfo.new(0.08), { Size = UDim2.new(0, 92, 0, 22) })
                     end)
                     btn.MouseButton1Up:Connect(function()
-                        Tween(btn, TweenInfo.new(0.12), { Size = UDim2.new(0, 96, 0, 24) })
+                        Tween(btn, TweenInfo.new(0.12), { Size = UDim2.new(0, 96, 0, 22) })
                         if doubleClick then
                             if clickArmed then
                                 clickArmed = false
@@ -1897,7 +1940,7 @@ function Library:CreateWindow(options)
                     Size = UDim2.new(1, 0, 0, 22),
                     Parent = elemList,
                 })
-                MakePadding(row, 2, 2, 12, 12)
+                MakePadding(row, 2, 2, 10, 10)
 
                 local label = Create("TextLabel", {
                     Text = labelText,
@@ -1950,7 +1993,9 @@ function Library:CreateWindow(options)
             function sectionObj:AddSeparator()
                 local sep = Create("Frame", {
                     BackgroundColor3 = Theme.Separator,
-                    Size = UDim2.new(1, 0, 0, 1),
+                    Size = UDim2.new(1, -20, 0, 1),
+                    AnchorPoint = Vector2.new(0.5, 0),
+                    Position = UDim2.new(0.5, 0, 0, 0),
                     Parent = elemList,
                 })
                 MakePadding(sep, 2, 2, 0, 0)
@@ -2021,30 +2066,29 @@ function Library:CreateWindow(options)
 
                 local container = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     ClipsDescendants = false,
                     ZIndex = 5,
                     Parent = elemList,
                 })
-                MakePadding(container, 0, 0, 12, 12)
+                MakePadding(container, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -108, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = container,
                 })
 
-                -- Dropdown button
                 local dropBtn = Create("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.DropdownBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 100, 0, 24),
+                    Size = UDim2.new(0, 100, 0, 20),
                     Text = multi and "Select..." or tostring(value or "None"),
                     Font = Font.Regular,
                     TextSize = 11,
@@ -2054,8 +2098,10 @@ function Library:CreateWindow(options)
                     ZIndex = 5,
                     Parent = container,
                 })
-                MakeRounded(dropBtn, 6)
-                MakeStroke(dropBtn, Theme.DropdownBorder, 1)
+                MakeRounded(dropBtn, 5)
+                MakeStroke(dropBtn, Theme.Accent, 1)
+                local dropStroke = dropBtn:FindFirstChildWhichIsA("UIStroke")
+                if dropStroke then dropStroke.Transparency = 0.6 end
 
                 local searchBox
 
@@ -2064,8 +2110,8 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     Text = "▾",
                     Font = Font.Regular,
-                    TextSize = 11,
-                    TextColor3 = Theme.TextSecondary,
+                    TextSize = 8,
+                    TextColor3 = Color3.fromRGB(46, 44, 58),
                     BackgroundTransparency = 1,
                     Position = UDim2.new(1, -6, 0.5, 0),
                     Size = UDim2.new(0, 14, 0, 14),
@@ -2083,7 +2129,9 @@ function Library:CreateWindow(options)
                     Parent = dropBtn,
                 })
                 MakeRounded(dropList, 6)
-                MakeStroke(dropList, Theme.DropdownBorder, 1)
+                MakeStroke(dropList, Theme.Accent, 1)
+                local dlStroke = dropList:FindFirstChildWhichIsA("UIStroke")
+                if dlStroke then dlStroke.Transparency = 0.7 end
                 MakePadding(dropList, 4, 4, 0, 0)
 
                 local listLayout = MakeListLayout(dropList, 2)
@@ -2159,7 +2207,7 @@ function Library:CreateWindow(options)
                             Text = "  " .. tostring(formatDisplayValue and (formatDisplayValue(opt) or opt) or opt),
                             Font = Font.Regular,
                             TextSize = 11,
-                            TextColor3 = disabledValues[tostring(opt)] and Theme.TextDisabled or (isSelected and Theme.AccentLight or Theme.TextPrimary),
+                            TextColor3 = disabledValues[tostring(opt)] and Theme.TextDisabled or (isSelected and Theme.Accent or Theme.TextSecondary),
                             TextXAlignment = Enum.TextXAlignment.Left,
                             AutoButtonColor = false,
                             ZIndex = 51,
@@ -2303,16 +2351,16 @@ function Library:CreateWindow(options)
 
                 local container = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(container, 0, 0, 12, 12)
+                MakePadding(container, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -108, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -2323,10 +2371,10 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.InputBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 100, 0, 24),
+                    Size = UDim2.new(0, 100, 0, 20),
                     Parent = container,
                 })
-                MakeRounded(inputFrame, 6)
+                MakeRounded(inputFrame, 5)
                 local inputStroke = MakeStroke(inputFrame, Theme.InputBorder, 1)
                 local tbObj
 
@@ -2420,16 +2468,16 @@ function Library:CreateWindow(options)
 
                 local row = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(row, 0, 0, 12, 12)
+                MakePadding(row, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -108, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -2440,7 +2488,7 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.KeybindBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 92, 0, 24),
+                    Size = UDim2.new(0, 72, 0, 20),
                     Text = "",
                     Font = Font.Regular,
                     TextSize = 11,
@@ -2448,7 +2496,7 @@ function Library:CreateWindow(options)
                     AutoButtonColor = false,
                     Parent = row,
                 })
-                MakeRounded(keyBtn, 6)
+                MakeRounded(keyBtn, 5)
                 MakeStroke(keyBtn, Theme.KeybindBorder, 1)
                 local kbStroke = keyBtn:FindFirstChildWhichIsA("UIStroke")
                 local kbObj
@@ -2681,30 +2729,29 @@ function Library:CreateWindow(options)
 
                 local container = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     ClipsDescendants = false,
                     ZIndex = 10,
                     Parent = elemList,
                 })
-                MakePadding(container, 0, 0, 12, 12)
+                MakePadding(container, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -50, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = container,
                 })
 
-                -- Color preview swatch
                 local swatch = Create("TextButton", {
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = value,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 38, 0, 20),
+                    Size = UDim2.new(0, 36, 0, 18),
                     Text = "",
                     AutoButtonColor = false,
                     Parent = container,
@@ -2874,16 +2921,16 @@ function Library:CreateWindow(options)
 
                 local row = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(row, 0, 0, 12, 12)
+                MakePadding(row, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = label,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -108, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -2894,15 +2941,15 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.ButtonBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 96, 0, 24),
+                    Size = UDim2.new(0, 80, 0, 20),
                     Text = "Hold",
                     Font = Font.Regular,
-                    TextSize = 11,
+                    TextSize = 10,
                     TextColor3 = Theme.TextPrimary,
                     AutoButtonColor = false,
                     Parent = row,
                 })
-                MakeRounded(holdBtn, 6)
+                MakeRounded(holdBtn, 5)
                 MakeStroke(holdBtn, Theme.ButtonBorder, 1)
 
                 if not disabled then
@@ -2949,16 +2996,16 @@ function Library:CreateWindow(options)
 
                 local container = Create("Frame", {
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 32),
+                    Size = UDim2.new(1, 0, 0, 28),
                     Parent = elemList,
                 })
-                MakePadding(container, 0, 0, 12, 12)
+                MakePadding(container, 0, 0, 10, 10)
 
                 local labelEl = Create("TextLabel", {
                     Text = displayText,
                     Font = Font.Regular,
                     TextSize = 12,
-                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+                    TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -108, 1, 0),
                     TextXAlignment = Enum.TextXAlignment.Left,
@@ -2969,16 +3016,18 @@ function Library:CreateWindow(options)
                     AnchorPoint = Vector2.new(1, 0.5),
                     BackgroundColor3 = Theme.ButtonBg,
                     Position = UDim2.new(1, 0, 0.5, 0),
-                    Size = UDim2.new(0, 96, 0, 24),
+                    Size = UDim2.new(0, 80, 0, 20),
                     Text = value,
                     Font = Font.Regular,
-                    TextSize = 11,
+                    TextSize = 10,
                     TextColor3 = Theme.TextAccent,
                     AutoButtonColor = false,
                     Parent = container,
                 })
-                MakeRounded(optBtn, 6)
-                MakeStroke(optBtn, Theme.ButtonBorder, 1)
+                MakeRounded(optBtn, 5)
+                MakeStroke(optBtn, Theme.Accent, 1)
+                local optStroke = optBtn:FindFirstChildWhichIsA("UIStroke")
+                if optStroke then optStroke.Transparency = 0.6 end
                 local optionButtonObj
 
                 if not disabled then
@@ -4147,13 +4196,13 @@ Library._buildRadioGroup = function(parent, label, opts)
         Size = UDim2.new(1, 0, 0, 58),
         Parent = parent,
     })
-    MakePadding(container, 4, 4, 12, 12)
+    MakePadding(container, 4, 4, 10, 10)
 
     local labelEl = Create("TextLabel", {
         Text = label,
         Font = Font.Regular,
         TextSize = 12,
-        TextColor3 = disabled and Theme.TextDisabled or Theme.TextPrimary,
+        TextColor3 = disabled and Theme.TextDisabled or Theme.TextSecondary,
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 0, 16),
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -4227,10 +4276,10 @@ Library._buildProgressBar = function(parent, label, opts)
 
     local container = Create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 42),
+        Size = UDim2.new(1, 0, 0, 38),
         Parent = parent,
     })
-    MakePadding(container, 0, 0, 12, 12)
+    MakePadding(container, 0, 0, 10, 10)
 
     local topRow = Create("Frame", {
         BackgroundTransparency = 1,
