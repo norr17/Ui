@@ -657,7 +657,7 @@ function Library:Notify(options)
         Parent = NotificationHolder,
     })
     MakeRounded(notif, 8)
-    MakeStroke(notif, Theme.NotifBorder, 1)
+    MakeStroke(notif, Theme.NotifBorder, 1, 0.3)
 
     -- Left accent bar
     local accentBar = Create("Frame", {
@@ -781,7 +781,7 @@ function Library:CreateLoading(options)
         Parent = screenGui,
     })
     MakeRounded(window, 14)
-    MakeStroke(window, Theme.WindowBorder, 1)
+    MakeStroke(window, Theme.WindowBorder, 1, 0.4)
     AddDropShadow(window, 20, 0.5)
     MakePadding(window, 28, 28, 32, 32)
 
@@ -1006,8 +1006,8 @@ function Library:CreateWindow(options)
         Parent = gui,
     })
     MakeRounded(windowFrame, 10)
-    MakeStroke(windowFrame, Theme.WindowBorder, 1)
-    AddDropShadow(windowFrame, 25, 0.45)
+    MakeStroke(windowFrame, Theme.WindowBorder, 1, 0.4)
+    AddDropShadow(windowFrame, 40, 0.25)
 
     local titleBar = Create("Frame", {
         Name = "TitleBar",
@@ -1033,6 +1033,7 @@ function Library:CreateWindow(options)
     })
     Create("Frame", {
         BackgroundColor3 = Theme.WindowBorder,
+        BackgroundTransparency = 0.3,
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 4),
         Size = UDim2.new(0, 1, 1, -8),
@@ -1054,6 +1055,34 @@ function Library:CreateWindow(options)
         Parent = breadcrumbContainer,
     })
 
+    local closeBtn = Create("TextButton", {
+        AnchorPoint = Vector2.new(1, 0.5),
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -6, 0.5, 0),
+        Size = UDim2.new(0, 28, 0, 28),
+        Text = "×",
+        Font = Font.Regular,
+        TextSize = 16,
+        TextColor3 = Color3.fromRGB(46, 44, 58),
+        AutoButtonColor = false,
+        Parent = titleBar,
+    })
+    MakeRounded(closeBtn, 5)
+    closeBtn.MouseEnter:Connect(function()
+        closeBtn.TextColor3 = Color3.fromRGB(255, 80, 80)
+    end)
+    closeBtn.MouseLeave:Connect(function()
+        closeBtn.TextColor3 = Color3.fromRGB(46, 44, 58)
+    end)
+
+    Create("Frame", {
+        BackgroundColor3 = Theme.WindowBorder,
+        BackgroundTransparency = 0.3,
+        Position = UDim2.new(0, 0, 1, -1),
+        Size = UDim2.new(1, 0, 0, 1),
+        Parent = titleBar,
+    })
+
     MakeDraggable(windowFrame, titleBar)
 
     local bodyFrame = Create("Frame", {
@@ -1072,6 +1101,7 @@ function Library:CreateWindow(options)
     })
     Create("Frame", {
         BackgroundColor3 = Theme.WindowBorder,
+        BackgroundTransparency = 0.3,
         AnchorPoint = Vector2.new(1, 0),
         Position = UDim2.new(1, 0, 0, 0),
         Size = UDim2.new(0, 1, 1, 0),
@@ -1114,6 +1144,7 @@ function Library:CreateWindow(options)
     })
     Create("Frame", {
         BackgroundColor3 = Theme.WindowBorder,
+        BackgroundTransparency = 0.3,
         Position = UDim2.new(0, 0, 1, -1),
         Size = UDim2.new(1, 0, 0, 1),
         Parent = subtabBar,
@@ -1247,10 +1278,10 @@ function Library:CreateWindow(options)
         self._activeTab = tabObj
         if tabObj._sidebarBtn then
             tabObj._sidebarBtn.BackgroundColor3 = Theme.Accent
-            tabObj._sidebarBtn.BackgroundTransparency = 0.8
+            tabObj._sidebarBtn.BackgroundTransparency = 0.875
             tabObj._sidebarIcon.ImageColor3 = Theme.Accent
             local stroke = tabObj._sidebarBtn:FindFirstChildWhichIsA("UIStroke")
-            if stroke then stroke.Transparency = 0.6 end
+            if stroke then stroke.Transparency = 0.75 end
         end
         self:_BuildBreadcrumb(tabObj)
         self:_BuildSubtabs(tabObj)
@@ -1298,7 +1329,7 @@ function Library:CreateWindow(options)
             Parent = sidebarBtn,
         })
         MakeRounded(tooltip, 4)
-        MakeStroke(tooltip, Theme.WindowBorder, 1)
+        MakeStroke(tooltip, Theme.WindowBorder, 1, 0.4)
 
         sidebarBtn.MouseEnter:Connect(function()
             tooltip.Visible = true
@@ -1437,7 +1468,7 @@ function Library:CreateWindow(options)
                 Parent = parent,
             })
             MakeRounded(sectionFrame, 8)
-            MakeStroke(sectionFrame, Theme.SectionBorder, 1)
+            MakeStroke(sectionFrame, Theme.SectionBorder, 1, 0.3)
 
             local headerFrame = Create("Frame", {
                 BackgroundTransparency = 1,
@@ -1460,6 +1491,7 @@ function Library:CreateWindow(options)
 
             local sep = Create("Frame", {
                 BackgroundColor3 = Theme.Separator,
+                BackgroundTransparency = 0.2,
                 Position = UDim2.new(0, 0, 0, 32),
                 Size = UDim2.new(1, 0, 0, 1),
                 Parent = sectionFrame,
@@ -1566,7 +1598,7 @@ function Library:CreateWindow(options)
                     Parent = row,
                 })
                 MakeRounded(trackBg, 9)
-                MakeStroke(trackBg, value and Theme.ToggleOnBright or Theme.ToggleBorderOff, 1)
+                MakeStroke(trackBg, value and Theme.ToggleOnBright or Theme.ToggleBorderOff, 1, 0.2)
 
                 local knob = Create("Frame", {
                     AnchorPoint = Vector2.new(0, 0.5),
@@ -1856,7 +1888,7 @@ function Library:CreateWindow(options)
                     Parent = row,
                 })
                 MakeRounded(btn, 5)
-                MakeStroke(btn, Theme.ButtonBorder, 1)
+                MakeStroke(btn, Theme.ButtonBorder, 1, 0.3)
                 local clickArmed = false
 
                 if not disabled then
@@ -1993,6 +2025,7 @@ function Library:CreateWindow(options)
             function sectionObj:AddSeparator()
                 local sep = Create("Frame", {
                     BackgroundColor3 = Theme.Separator,
+                    BackgroundTransparency = 0.2,
                     Size = UDim2.new(1, -20, 0, 1),
                     AnchorPoint = Vector2.new(0.5, 0),
                     Position = UDim2.new(0.5, 0, 0, 0),
@@ -2099,9 +2132,9 @@ function Library:CreateWindow(options)
                     Parent = container,
                 })
                 MakeRounded(dropBtn, 5)
-                MakeStroke(dropBtn, Theme.Accent, 1)
+                MakeStroke(dropBtn, Theme.Accent, 1, 0.75)
                 local dropStroke = dropBtn:FindFirstChildWhichIsA("UIStroke")
-                if dropStroke then dropStroke.Transparency = 0.6 end
+                if dropStroke then dropStroke.Transparency = 0.75 end
 
                 local searchBox
 
@@ -2129,9 +2162,9 @@ function Library:CreateWindow(options)
                     Parent = dropBtn,
                 })
                 MakeRounded(dropList, 6)
-                MakeStroke(dropList, Theme.Accent, 1)
+                MakeStroke(dropList, Theme.Accent, 1, 0.81)
                 local dlStroke = dropList:FindFirstChildWhichIsA("UIStroke")
-                if dlStroke then dlStroke.Transparency = 0.7 end
+                if dlStroke then dlStroke.Transparency = 0.81 end
                 MakePadding(dropList, 4, 4, 0, 0)
 
                 local listLayout = MakeListLayout(dropList, 2)
@@ -2192,7 +2225,7 @@ function Library:CreateWindow(options)
                             Parent = dropList,
                         })
                         MakeRounded(searchBox, 4)
-                        MakeStroke(searchBox, Theme.InputBorder, 1)
+                        MakeStroke(searchBox, Theme.InputBorder, 1, 0.3)
                         MakePadding(searchBox, 0, 0, 6, 6)
                         searchBox:GetPropertyChangedSignal("Text"):Connect(RebuildList)
                     end
@@ -2375,7 +2408,7 @@ function Library:CreateWindow(options)
                     Parent = container,
                 })
                 MakeRounded(inputFrame, 5)
-                local inputStroke = MakeStroke(inputFrame, Theme.InputBorder, 1)
+                local inputStroke = MakeStroke(inputFrame, Theme.InputBorder, 1, 0.3)
                 local tbObj
 
                 local textbox = Create("TextBox", {
@@ -2497,7 +2530,7 @@ function Library:CreateWindow(options)
                     Parent = row,
                 })
                 MakeRounded(keyBtn, 5)
-                MakeStroke(keyBtn, Theme.KeybindBorder, 1)
+                MakeStroke(keyBtn, Theme.KeybindBorder, 1, 0.3)
                 local kbStroke = keyBtn:FindFirstChildWhichIsA("UIStroke")
                 local kbObj
 
@@ -2757,7 +2790,7 @@ function Library:CreateWindow(options)
                     Parent = container,
                 })
                 MakeRounded(swatch, 5)
-                MakeStroke(swatch, Theme.InputBorder, 1)
+                MakeStroke(swatch, Theme.InputBorder, 1, 0.3)
 
                 -- Picker popup
                 local picker = Create("Frame", {
@@ -2770,7 +2803,7 @@ function Library:CreateWindow(options)
                     Parent = container,
                 })
                 MakeRounded(picker, 8)
-                MakeStroke(picker, Theme.DropdownBorder, 1)
+                MakeStroke(picker, Theme.DropdownBorder, 1, 0.3)
                 MakePadding(picker, 8, 8, 8, 8)
 
                 -- SV gradient (saturation/value)
@@ -2950,7 +2983,7 @@ function Library:CreateWindow(options)
                     Parent = row,
                 })
                 MakeRounded(holdBtn, 5)
-                MakeStroke(holdBtn, Theme.ButtonBorder, 1)
+                MakeStroke(holdBtn, Theme.ButtonBorder, 1, 0.3)
 
                 if not disabled then
                     holdBtn.MouseButton1Down:Connect(function()
@@ -3025,9 +3058,9 @@ function Library:CreateWindow(options)
                     Parent = container,
                 })
                 MakeRounded(optBtn, 5)
-                MakeStroke(optBtn, Theme.Accent, 1)
+                MakeStroke(optBtn, Theme.Accent, 1, 0.75)
                 local optStroke = optBtn:FindFirstChildWhichIsA("UIStroke")
-                if optStroke then optStroke.Transparency = 0.6 end
+                if optStroke then optStroke.Transparency = 0.75 end
                 local optionButtonObj
 
                 if not disabled then
@@ -3115,7 +3148,7 @@ function Library:CreateWindow(options)
                 Parent = parent,
             })
             MakeRounded(host, 8)
-            MakeStroke(host, Theme.SectionBorder, 1)
+            MakeStroke(host, Theme.SectionBorder, 1, 0.3)
 
             local header = Create("Frame", {
                 BackgroundTransparency = 1,
@@ -3159,7 +3192,7 @@ function Library:CreateWindow(options)
                     Parent = header,
                 })
                 MakeRounded(button, 6)
-                MakeStroke(button, Theme.ButtonBorder, 1)
+                MakeStroke(button, Theme.ButtonBorder, 1, 0.3)
 
                 local proxy = tabObj:AddSection(tabName, column)
                 proxy._frame.Parent = pages
@@ -3274,6 +3307,10 @@ function Library:CreateWindow(options)
     function windowObj:Destroy()
         windowFrame:Destroy()
     end
+
+    closeBtn.MouseButton1Click:Connect(function()
+        windowObj:Hide()
+    end)
 
     table.insert(Library._windows, windowObj)
     return windowObj
@@ -3450,7 +3487,7 @@ function Library:AddDraggableLabel(text)
         Parent = self._gui,
     })
     MakeRounded(frame, 6)
-    MakeStroke(frame, Theme.WindowBorder, 1)
+    MakeStroke(frame, Theme.WindowBorder, 1, 0.4)
     local label = Create("TextLabel", {
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
@@ -3535,7 +3572,7 @@ function Library:CreateWatermark(opts)
         Parent = gui,
     })
     MakeRounded(frame, 5)
-    MakeStroke(frame, Theme.WindowBorder, 1)
+    MakeStroke(frame, Theme.WindowBorder, 1, 0.4)
     MakePadding(frame, 0, 0, 10, 10)
 
     local label = Create("TextLabel", {
@@ -3590,7 +3627,7 @@ function Library:CreateFPSCounter(opts)
         Parent = gui,
     })
     MakeRounded(frame, 5)
-    MakeStroke(frame, Theme.WindowBorder, 1)
+    MakeStroke(frame, Theme.WindowBorder, 1, 0.4)
 
     local label = Create("TextLabel", {
         BackgroundTransparency = 1,
@@ -4360,7 +4397,7 @@ function Library:CreateContextMenu(opts)
         Parent = self._gui,
     })
     MakeRounded(menu, 7)
-    MakeStroke(menu, Theme.DropdownBorder, 1)
+    MakeStroke(menu, Theme.DropdownBorder, 1, 0.3)
     AddDropShadow(menu, 10, 0.6)
     MakePadding(menu, 4, 4, 0, 0)
     local menuLayout = MakeListLayout(menu, 2)
@@ -4453,7 +4490,7 @@ function Library:ShowTooltip(text, x, y)
             Parent = self._gui,
         })
         MakeRounded(tooltipFrame, 4)
-        MakeStroke(tooltipFrame, Theme.WindowBorder, 1)
+        MakeStroke(tooltipFrame, Theme.WindowBorder, 1, 0.4)
         MakePadding(tooltipFrame, 0, 0, 8, 8)
         Create("TextLabel", {
             BackgroundTransparency = 1,
